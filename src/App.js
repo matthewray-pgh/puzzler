@@ -1,10 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './App.scss';
 
-export const App = () => {
+import level from "./assets/levelOne.json";
+import DungeonTiles from "./assets/images/DungeonTiles.png";
 
-  const gridSize = 8;
-  const cellSize = 100;
+export const App = () => {
+  const [playerPosition, setPlayerPosition] = useState({x: 32, y: 32});
+  const levelMap = level.collisionMap;
+
+  const gridSize = level.gridSize;
+  const cellSize = level.cellSize;
+  const gridWidth = gridSize * cellSize;
 
   const backgroundIndex = 0;
   const collisionIndex = 1;
@@ -13,51 +19,111 @@ export const App = () => {
   return (
     <div className="App">
       {/* background level */}
-      <LevelGrid gridSize={gridSize} cellSize={cellSize} zIndex={backgroundIndex} />
+      <LevelGrid
+        gridSize={gridSize}
+        cellSize={cellSize}
+        zIndex={backgroundIndex}
+      />
       {/* collision / player layer */}
-      <LevelGrid gridSize={gridSize} cellSize={cellSize} zIndex={collisionIndex} borderColor="red" />
+      <LevelGrid
+        gridSize={gridSize}
+        cellSize={cellSize}
+        zIndex={collisionIndex}
+        borderColor="red"
+      />
+      {/* collision blocks */}
+      {levelMap.map((block, index) => {
+        return (
+          <CollisionBlock
+            key={index}
+            width={cellSize}
+            height={cellSize}
+            x={block.x * cellSize}
+            y={block.y * cellSize}
+            layerIndex={collisionIndex}
+            tileKey={block.tileKey}
+            playerPosition={playerPosition}
+          />);
+        }
+      )}
+      
       {/* animation / interaction layer */}
-      <LevelGrid gridSize={gridSize} cellSize={cellSize} zIndex={animationIndex} borderColor="blue" />
-      <Player width={cellSize} height={cellSize} fill="green" x={0} y={0} playerIndex={1} />
+      <LevelGrid
+        gridSize={gridSize}
+        cellSize={cellSize}
+        zIndex={animationIndex}
+        borderColor="blue"
+      />
+      {/* player */}
+      <Player
+        width={cellSize}
+        height={cellSize}
+        playerIndex={1}
+        fill="green"
+        position={playerPosition}
+        handlePositionChange={setPlayerPosition}
+        moveDistance={cellSize}
+        collisionMinMax={{
+          min: { x: 0, y: 0 },
+          max: { x: gridWidth - cellSize, y: gridWidth - cellSize },
+        }}
+        levelMap={levelMap}
+      />
       <Timer />
     </div>
   );
 }
 
-
 export const LevelGrid = ({ gridSize, cellSize, zIndex, borderColor="white" }) => {
   return (
-    <div style={{
+    <div
+      style={{
         position: "fixed",
         width: `${gridSize * cellSize}px`,
-        display: "grid", 
+        display: "grid",
         gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
         columnGap: "0",
         zIndex: zIndex,
-      }}>
-        {Array.from(Array(gridSize), (e, index) => {
-          return Array.from(Array(gridSize), (e, i) => {
-            return (
-              <div
-                className="cell"
-                key={i}
-                style={{ 
-                  width: `${cellSize}px`, 
-                  height: `${cellSize}px`,
-                  border: `1px solid ${borderColor}`
-                }}
-              ></div>
-            );
-          })
-        })
-      }
+        border: `1px solid ${borderColor}`,
+      }}
+    >
+      {Array.from(Array(gridSize), (e, index) => {
+        return Array.from(Array(gridSize), (e, i) => {
+          return (
+            <div
+              className="cell"
+              key={i}
+              style={{
+                width: `${cellSize}px`,
+                height: `${cellSize}px`,
+              }}
+            ></div>
+          );
+        });
+      })}
     </div>
-  )
+  );
 };
 
-export const Player = ({ width, height, fill, x, y, playerIndex = 1 }) => {
-  const [position, setPosition] = useState({x: x, y: y});
-  
+export const CollisionBlock = ({ width, height, x, y, layerIndex, tileKey }) => {  
+  const tilePosition = level.dungeonTileKey.find(x => x.id === tileKey);
+
+  const styled = {
+    width: `${width}px`,
+    height: `${height}px`,
+    background: `url(${DungeonTiles})`,
+    backgroundPosition: `${tilePosition.x}px ${tilePosition.y}px`,
+    position: "absolute",
+    top: `${y}px`,
+    left: `${x}px`,
+    zIndex: layerIndex,
+  };
+  return (
+    <div data-testid='collision-block' style={styled}></div>
+  )
+}
+
+export const Player = ({ width, height, playerIndex = 1, fill, position, handlePositionChange, moveDistance, collisionMinMax, levelMap }) => {
   const styled = {
     width: `${width}px`,
     height: `${height}px`,
@@ -69,26 +135,57 @@ export const Player = ({ width, height, fill, x, y, playerIndex = 1 }) => {
     borderRadius: "50%",
   }
 
+  const findMapCollisions = (position) => {
+    const collision = levelMap.find((block) => {
+      return (
+        position.x === block.x * level.cellSize && 
+        position.y === block.y * level.cellSize
+      );
+    });
+    return collision ? true : false;
+  };
+
   const handleMove = ({key}) => {
+    // right
     if(key === "ArrowRight" || key === "d") {
-      const newPosition = { x: position.x + width, y: position.y };
+      const newPosition = { x: position.x + moveDistance, y: position.y };
+      if (
+        newPosition.x > collisionMinMax.max.x || findMapCollisions(newPosition)) {
+        console.log("Collision!");
+        return;
+      }
       console.log("move right", newPosition);
-      setPosition(newPosition);
+      handlePositionChange(newPosition);
     }
+    // left
     else if(key === "ArrowLeft" || key === "a") {
-      const newPosition = { x: position.x - width, y: position.y };
+      const newPosition = { x: position.x - moveDistance, y: position.y };
+      if (newPosition.x < collisionMinMax.min.x || findMapCollisions(newPosition)) {
+        console.log("Collision!");
+        return;
+      }
       console.log("move left", newPosition);
-      setPosition(newPosition);
+      handlePositionChange(newPosition);
     }
+    // down
     else if(key === "ArrowDown" || key === "s") {
-      const newPosition = { x: position.x, y: position.y + height };
+      const newPosition = { x: position.x, y: position.y + moveDistance };
+      if (newPosition.y > collisionMinMax.max.y || findMapCollisions(newPosition)) {
+        console.log("Collision!");
+        return;
+      }
       console.log("move down", newPosition);
-      setPosition(newPosition);
+      handlePositionChange(newPosition);
     }
+    // up
     else if(key === "ArrowUp" || key === "w") {
-      const newPosition = { x: position.x, y: position.y - height };
+      const newPosition = { x: position.x, y: position.y - moveDistance };
+      if (newPosition.y < collisionMinMax.min.y || findMapCollisions(newPosition)) {
+        console.log("Collision!");
+        return;
+      }
       console.log("move up", newPosition);
-      setPosition(newPosition);
+      handlePositionChange(newPosition);
     }
   };
 
@@ -149,12 +246,18 @@ const Timer = () => {
 
   const formatTimer = (time) => {
     let minutes = Math.floor(time / 60000);
+    
     let seconds = Math.floor(time / 1000);
-    let displaySeconds = seconds - (minutes * 60);
+    let secondsString = seconds - minutes * 60;
+    let displaySeconds =
+      secondsString < 10 ? `0${secondsString}` : secondsString;
+    
     let milliSeconds = Math.floor(time / 100);
     let displayMilliSeconds = milliSeconds - (seconds * 10);
+    
     return `${minutes}:${displaySeconds}.${displayMilliSeconds}`;
   }
+
   return (
     <div className="timer">
       <div>{formatTimer(displayTime)}</div>
