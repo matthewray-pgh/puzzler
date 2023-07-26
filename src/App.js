@@ -8,9 +8,9 @@ export const App = () => {
   const [playerPosition, setPlayerPosition] = useState({x: 32, y: 32});
   const levelMap = level.collisionMap;
 
-  const gridSize = level.gridSize;
   const cellSize = level.cellSize;
-  const gridWidth = gridSize * cellSize;
+  const gridWidth = level.grid.width * cellSize;
+  const gridHeight = level.grid.height * cellSize;
 
   const backgroundIndex = 0;
   const collisionIndex = 1;
@@ -19,18 +19,21 @@ export const App = () => {
   return (
     <div className="App">
       {/* background level */}
-      <LevelGrid
-        gridSize={gridSize}
-        cellSize={cellSize}
-        zIndex={backgroundIndex}
-      />
+      {level.baseMap.map((block, index) => {
+        return (
+          <Tile
+            key={index}
+            width={cellSize}
+            height={cellSize}
+            x={block.x * cellSize}
+            y={block.y * cellSize}
+            layerIndex={backgroundIndex}
+            tileKey={block.tileKey}
+          />
+        );
+      })}
+
       {/* collision / player layer */}
-      <LevelGrid
-        gridSize={gridSize}
-        cellSize={cellSize}
-        zIndex={collisionIndex}
-        borderColor="red"
-      />
       {/* collision blocks */}
       {levelMap.map((block, index) => {
         return (
@@ -42,18 +45,10 @@ export const App = () => {
             y={block.y * cellSize}
             layerIndex={collisionIndex}
             tileKey={block.tileKey}
-            playerPosition={playerPosition}
-          />);
-        }
-      )}
-      
-      {/* animation / interaction layer */}
-      <LevelGrid
-        gridSize={gridSize}
-        cellSize={cellSize}
-        zIndex={animationIndex}
-        borderColor="blue"
-      />
+          />
+        );
+      })}
+
       {/* player */}
       <Player
         width={cellSize}
@@ -65,30 +60,40 @@ export const App = () => {
         moveDistance={cellSize}
         collisionMinMax={{
           min: { x: 0, y: 0 },
-          max: { x: gridWidth - cellSize, y: gridWidth - cellSize },
+          max: { x: gridWidth - cellSize, y: gridHeight - cellSize },
         }}
         levelMap={levelMap}
       />
+
+      <LevelGrid
+        width={level.grid.width}
+        height={level.grid.height}
+        cellSize={cellSize}
+        zIndex={collisionIndex}
+        borderColor='white'
+        showCoords={true}
+      />
+
       <Timer />
     </div>
   );
 }
 
-export const LevelGrid = ({ gridSize, cellSize, zIndex, borderColor="white" }) => {
+export const LevelGrid = ({ width, height, cellSize, zIndex, borderColor="white", showCoords }) => {
   return (
     <div
       style={{
         position: "fixed",
-        width: `${gridSize * cellSize}px`,
+        width: `${width * cellSize}px`,
         display: "grid",
-        gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
+        gridTemplateColumns: `repeat(${width}, 1fr)`,
         columnGap: "0",
         zIndex: zIndex,
         border: `1px solid ${borderColor}`,
       }}
     >
-      {Array.from(Array(gridSize), (e, index) => {
-        return Array.from(Array(gridSize), (e, i) => {
+      {Array.from(Array(height), (e, index) => {
+        return Array.from(Array(width), (e, i) => {
           return (
             <div
               className="cell"
@@ -96,13 +101,68 @@ export const LevelGrid = ({ gridSize, cellSize, zIndex, borderColor="white" }) =
               style={{
                 width: `${cellSize}px`,
                 height: `${cellSize}px`,
+                color: borderColor,
+                fontSize: "8px",
+                textAlign: "center",
               }}
-            ></div>
+            >
+              {showCoords && (
+                <p>
+                  ({i},{index})
+                </p>
+              )}
+            </div>
           );
         });
       })}
     </div>
   );
+};
+
+export const RandomBaseTile = ({
+  width,
+  height,
+  x,
+  y,
+  layerIndex,
+}) => {
+  const randomTileKey = level.baseTiles[Math.floor(Math.random() * level.baseTiles.length)];
+  const tilePosition = level.dungeonTileKey.find((x) => x.id === randomTileKey);
+
+  const styled = {
+    width: `${width}px`,
+    height: `${height}px`,
+    background: `url(${DungeonTiles})`,
+    backgroundPosition: `${tilePosition.x}px ${tilePosition.y}px`,
+    position: "absolute",
+    top: `${y}px`,
+    left: `${x}px`,
+    zIndex: layerIndex,
+  };
+  return <div data-testid="base-tile-block" style={styled}></div>;
+};
+
+export const Tile = ({
+  width,
+  height,
+  x,
+  y,
+  layerIndex,
+  tileKey,
+}) => {
+  const tilePosition = level.dungeonTileKey.find((x) => x.id === tileKey);
+
+  const styled = {
+    width: `${width}px`,
+    height: `${height}px`,
+    background: `url(${DungeonTiles})`,
+    backgroundPosition: `${tilePosition.x}px ${tilePosition.y}px`,
+    position: "absolute",
+    top: `${y}px`,
+    left: `${x}px`,
+    zIndex: layerIndex,
+  };
+  return <div data-testid="tile" style={styled}></div>;
 };
 
 export const CollisionBlock = ({ width, height, x, y, layerIndex, tileKey }) => {  
@@ -151,40 +211,40 @@ export const Player = ({ width, height, playerIndex = 1, fill, position, handleP
       const newPosition = { x: position.x + moveDistance, y: position.y };
       if (
         newPosition.x > collisionMinMax.max.x || findMapCollisions(newPosition)) {
-        console.log("Collision!");
+        // console.log("Collision!");
         return;
       }
-      console.log("move right", newPosition);
+      // console.log("move right", newPosition);
       handlePositionChange(newPosition);
     }
     // left
     else if(key === "ArrowLeft" || key === "a") {
       const newPosition = { x: position.x - moveDistance, y: position.y };
       if (newPosition.x < collisionMinMax.min.x || findMapCollisions(newPosition)) {
-        console.log("Collision!");
+        // console.log("Collision!");
         return;
       }
-      console.log("move left", newPosition);
+      // console.log("move left", newPosition);
       handlePositionChange(newPosition);
     }
     // down
     else if(key === "ArrowDown" || key === "s") {
       const newPosition = { x: position.x, y: position.y + moveDistance };
       if (newPosition.y > collisionMinMax.max.y || findMapCollisions(newPosition)) {
-        console.log("Collision!");
+        // console.log("Collision!");
         return;
       }
-      console.log("move down", newPosition);
+      // console.log("move down", newPosition);
       handlePositionChange(newPosition);
     }
     // up
     else if(key === "ArrowUp" || key === "w") {
       const newPosition = { x: position.x, y: position.y - moveDistance };
       if (newPosition.y < collisionMinMax.min.y || findMapCollisions(newPosition)) {
-        console.log("Collision!");
+        // console.log("Collision!");
         return;
       }
-      console.log("move up", newPosition);
+      // console.log("move up", newPosition);
       handlePositionChange(newPosition);
     }
   };
