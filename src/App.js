@@ -3,6 +3,7 @@ import './App.scss';
 
 import level from "./assets/levelOne.json";
 import DungeonTiles from "./assets/images/DungeonTiles.png";
+import Hero from "./assets/images/character-1.png";
 
 export const App = () => {
   const [playerPosition, setPlayerPosition] = useState({x: 32, y: 32});
@@ -71,7 +72,7 @@ export const App = () => {
         cellSize={cellSize}
         zIndex={collisionIndex}
         borderColor='white'
-        showCoords={true}
+        showCoords={false}
       />
 
       <Timer />
@@ -187,12 +188,16 @@ export const Player = ({ width, height, playerIndex = 1, fill, position, handleP
   const styled = {
     width: `${width}px`,
     height: `${height}px`,
-    backgroundColor: fill,
+    // backgroundColor: fill,
+    backgroundImage: `url(${Hero})`,
+    backgroundSize: "cover",
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: `${1}px ${1}px`,
     position: "absolute",
     top: `${position.y}px`,
     left: `${position.x}px`,
     zIndex: playerIndex,
-    borderRadius: "50%",
+    // borderRadius: "50%",
   }
 
   const findMapCollisions = (position) => {
