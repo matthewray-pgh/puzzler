@@ -1,17 +1,29 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.scss';
+
+import { Player } from './components/Player';
 
 import level from "./assets/levelOne.json";
 import DungeonTiles from "./assets/images/DungeonTiles.png";
-import Hero from "./assets/images/character-1.png";
 
 export const App = () => {
-  const [playerPosition, setPlayerPosition] = useState({x: 32, y: 32});
+  const [gameOver, setGameOver] = useState(false);
   const levelMap = level.collisionMap;
 
   const cellSize = level.cellSize;
   const gridWidth = level.grid.width * cellSize;
   const gridHeight = level.grid.height * cellSize;
+
+  // gameloop
+  useEffect(() => {
+    const movementDelay = Math.round(1000 / level.player.speed);
+    const gameInterval = setInterval(() => {
+    }, movementDelay);
+
+    if(gameOver) { clearInterval(gameInterval); }
+
+    return () => clearInterval(gameInterval);
+  }, [gameOver]);
 
   const backgroundIndex = 0;
   const collisionIndex = 1;
@@ -52,18 +64,15 @@ export const App = () => {
 
       {/* player */}
       <Player
-        width={cellSize}
-        height={cellSize}
+        width={30}
+        height={30}
         playerIndex={1}
-        fill="green"
-        position={playerPosition}
-        handlePositionChange={setPlayerPosition}
-        moveDistance={cellSize}
+        // fill="green"
         collisionMinMax={{
           min: { x: 0, y: 0 },
           max: { x: gridWidth - cellSize, y: gridHeight - cellSize },
         }}
-        levelMap={levelMap}
+        level={level}
       />
 
       <LevelGrid
@@ -180,105 +189,8 @@ export const CollisionBlock = ({ width, height, x, y, layerIndex, tileKey }) => 
     zIndex: layerIndex,
   };
   return (
-    <div data-testid='collision-block' style={styled}></div>
+    <div id={`collision-block-${x}-${y}`} data-testid='collision-block' style={styled}></div>
   )
-}
-
-export const Player = ({ width, height, playerIndex = 1, fill, position, handlePositionChange, moveDistance, collisionMinMax, levelMap }) => {
-  const styled = {
-    width: `${width}px`,
-    height: `${height}px`,
-    // backgroundColor: fill,
-    backgroundImage: `url(${Hero})`,
-    backgroundSize: "cover",
-    backgroundRepeat: "no-repeat",
-    backgroundPosition: `${1}px ${1}px`,
-    position: "absolute",
-    top: `${position.y}px`,
-    left: `${position.x}px`,
-    zIndex: playerIndex,
-    // borderRadius: "50%",
-  }
-
-  const findMapCollisions = (position) => {
-    const collision = levelMap.find((block) => {
-      return (
-        position.x === block.x * level.cellSize && 
-        position.y === block.y * level.cellSize
-      );
-    });
-    return collision ? true : false;
-  };
-
-  const handleMove = ({key}) => {
-    // right
-    if(key === "ArrowRight" || key === "d") {
-      const newPosition = { x: position.x + moveDistance, y: position.y };
-      if (
-        newPosition.x > collisionMinMax.max.x || findMapCollisions(newPosition)) {
-        // console.log("Collision!");
-        return;
-      }
-      // console.log("move right", newPosition);
-      handlePositionChange(newPosition);
-    }
-    // left
-    else if(key === "ArrowLeft" || key === "a") {
-      const newPosition = { x: position.x - moveDistance, y: position.y };
-      if (newPosition.x < collisionMinMax.min.x || findMapCollisions(newPosition)) {
-        // console.log("Collision!");
-        return;
-      }
-      // console.log("move left", newPosition);
-      handlePositionChange(newPosition);
-    }
-    // down
-    else if(key === "ArrowDown" || key === "s") {
-      const newPosition = { x: position.x, y: position.y + moveDistance };
-      if (newPosition.y > collisionMinMax.max.y || findMapCollisions(newPosition)) {
-        // console.log("Collision!");
-        return;
-      }
-      // console.log("move down", newPosition);
-      handlePositionChange(newPosition);
-    }
-    // up
-    else if(key === "ArrowUp" || key === "w") {
-      const newPosition = { x: position.x, y: position.y - moveDistance };
-      if (newPosition.y < collisionMinMax.min.y || findMapCollisions(newPosition)) {
-        // console.log("Collision!");
-        return;
-      }
-      // console.log("move up", newPosition);
-      handlePositionChange(newPosition);
-    }
-  };
-
-  useEventListener("keydown", (e) => {handleMove(e)});
-
-  return (
-    <div style={styled} data-testid="player"></div>
-  )
-}
-
-function useEventListener(eventName, handler, element = window){
-  const savedHandler = useRef();
-
-  useEffect(() => {
-    savedHandler.current = handler;
-  }, [handler]);
-
-  useEffect(() => {
-    const isSupported = element && element.addEventListener;
-    if(!isSupported) return;
-
-    const eventListener = event => savedHandler.current(event);
-    element.addEventListener(eventName, eventListener);
-
-    return () => {
-      element.removeEventListener(eventName, eventListener);
-    };
-  }, [eventName, element]);
 }
 
 function useFrameTime(){
