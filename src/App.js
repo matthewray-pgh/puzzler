@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import './App.scss';
+
+import { Home } from './pages/Home/Home.jsx';
+import { GameLevel } from './pages/Game/GameLevel.jsx';
+import { Stats } from './pages/Stats/Stats.jsx';
 
 import { Player } from './components/Player';
 
@@ -7,32 +13,37 @@ import level from "./assets/levelOne.json";
 import DungeonTiles from "./assets/images/DungeonTiles.png";
 
 export const App = () => {
-  const [gameOver, setGameOver] = useState(false);
-  const levelMap = level.collisionMap;
+  // const [gameOver, setGameOver] = useState(false);
+  // const levelMap = level.collisionMap;
 
-  const cellSize = level.cellSize;
-  const gridWidth = level.grid.width * cellSize;
-  const gridHeight = level.grid.height * cellSize;
+  // const cellSize = level.cellSize;
+  // const gridWidth = level.grid.width * cellSize;
+  // const gridHeight = level.grid.height * cellSize;
 
   // gameloop
-  useEffect(() => {
-    const movementDelay = Math.round(1000 / level.player.speed);
-    const gameInterval = setInterval(() => {
-    }, movementDelay);
+  // useEffect(() => {
+  //   const movementDelay = Math.round(1000 / level.player.speed);
+  //   const gameInterval = setInterval(() => {
+  //   }, movementDelay);
 
-    if(gameOver) { clearInterval(gameInterval); }
+  //   if(gameOver) { clearInterval(gameInterval); }
 
-    return () => clearInterval(gameInterval);
-  }, [gameOver]);
+  //   return () => clearInterval(gameInterval);
+  // }, [gameOver]);
 
-  const backgroundIndex = 0;
-  const collisionIndex = 1;
-  const animationIndex = 2;
+  // const backgroundIndex = 0;
+  // const collisionIndex = 1;
+  // const animationIndex = 2;
 
   return (
-    <div className="App">
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/game" element={<GameLevel />} />
+        <Route path="/stats" element={<Stats />} />
+      </Routes>
       {/* background level */}
-      {level.baseMap.map((block, index) => {
+      {/* {level.baseMap.map((block, index) => {
         return (
           <Tile
             key={index}
@@ -44,11 +55,11 @@ export const App = () => {
             tileKey={block.tileKey}
           />
         );
-      })}
+      })} */}
 
       {/* collision / player layer */}
       {/* collision blocks */}
-      {levelMap.map((block, index) => {
+      {/* {levelMap.map((block, index) => {
         return (
           <CollisionBlock
             key={index}
@@ -60,10 +71,10 @@ export const App = () => {
             tileKey={block.tileKey}
           />
         );
-      })}
+      })} */}
 
       {/* player */}
-      <Player
+      {/* <Player
         width={30}
         height={30}
         playerIndex={1}
@@ -73,19 +84,19 @@ export const App = () => {
           max: { x: gridWidth - cellSize, y: gridHeight - cellSize },
         }}
         level={level}
-      />
+      /> */}
 
-      <LevelGrid
+      {/* <LevelGrid
         width={level.grid.width}
         height={level.grid.height}
         cellSize={cellSize}
         zIndex={collisionIndex}
         borderColor='white'
         showCoords={false}
-      />
+      /> */}
 
-      <Timer />
-    </div>
+      {/* <Timer /> */}
+    </BrowserRouter>
   );
 }
 

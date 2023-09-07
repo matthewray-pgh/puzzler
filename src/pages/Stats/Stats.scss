@@ -1,0 +1,8 @@
+$level-background-color: #282c34;
+$color-white: #ffffff;
+
+.level {
+  background-color: $level-background-color;
+  color: $color-white;
+  min-height: 100vh;
+}

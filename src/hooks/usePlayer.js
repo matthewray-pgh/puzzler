@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { directions } from '../utils/enums';
 
-export const usePlayer = () => {
+export const usePlayer = (positionX, positionY, moveSpeed) => {
   const [playerStats, setPlayerStats] = useState({
-    position: {x: 32, y: 32},
-    speed: 8,
+    speed: moveSpeed,
     direction: directions.RIGHT,
     facing: directions.RIGHT,
     animation: 'idle',
@@ -31,11 +30,12 @@ export const usePlayer = () => {
       accessory: null
     }
   });
+  const [playerPosX, setPlayerPosX] = useState(positionX);
+  const [playerPosY, setPlayerPosY] = useState(positionY);
 
-  const movePlayer = (direction) => {
-    setPlayerStats(prev => {
-      return {...prev, direction, moving: true};
-    });
+  const movePlayer = (deltaX, deltaY) => {
+    setPlayerPosX(prevX => prevX + deltaX);
+    setPlayerPosY(prevY => prevY + deltaY);
   }
 
   const stopPlayer = () => {
@@ -53,12 +53,6 @@ export const usePlayer = () => {
   const stopAttack = () => {
     setPlayerStats(prev => {
       return {...prev, attacking: false};
-    });
-  }
-
-  const updatePlayerPosition = (x, y) => {
-    setPlayerStats(prev => {
-      return {...prev, position: {x, y}};
     });
   }
 
@@ -99,12 +93,13 @@ export const usePlayer = () => {
   }
 
   return {
+    playerPosX,
+    playerPosY,
     playerStats,
     movePlayer,
     stopPlayer,
     attackPlayer,
     stopAttack,
-    updatePlayerPosition,
     updatePlayerHealth,
     updatePlayerExperience,
     updatePlayerLevel,

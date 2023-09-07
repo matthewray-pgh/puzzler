@@ -1,0 +1,42 @@
+$level-background-color: #282c34;
+$color-white: #ffffff;
+
+.level {
+  background-color: $level-background-color;
+  color: $color-white;
+  min-height: 100vh;
+}
+
+.menu {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-content: center;  
+
+  height: 30px;
+  padding: 0 10px;
+
+  &__buttons {
+    justify-self: end;
+  }
+}
+
+.gameWindow {
+  border: 2px solid $color-white;
+}
+
+.gameWindow-collisions {
+  background-color: transparent;
+  border: 2px solid $color-white;
+  z-index: 1;
+  position: absolute;
+  top: 30px;
+  left: 0;
+}
+
+.gameWindow-background {
+  border: 2px solid $color-white;
+  z-index: 0;
+  position: absolute;
+  top: 30px;
+  left: 0;
+}
