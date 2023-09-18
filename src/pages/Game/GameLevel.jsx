@@ -2,8 +2,9 @@ import React, { useEffect, useRef } from 'react';
 import './GameLevel.scss';
 
 import level from "../../assets/levelOne.json";
-import DungeonTiles from "../../assets/images/DungeonTiles.png";
-import playerSpriteSheet from "../../assets/images/character-1.png";
+import dungeonTilesSheet from "../../assets/images/DungeonTiles.png";
+import playerSpriteSheet from "../../assets/images/character-spritesheet.png";
+import wallTorchSpriteSheet from "../../assets/images/torch-Sheet.png";
 
 const TileSize = level.cellSize;
 
@@ -11,8 +12,8 @@ export const GameLevel = () => {
   const showCollisionBox = false;
   let collisionObjects = [];
 
-  let playerPosition = { x: 500, y: 225 };
-  const playerSpeed = 2;
+  let playerPosition = { x: 600, y: 250 };
+  const playerSpeed = 2.5;
 
   const playerSize = TileSize * 1.5 + (TileSize * 1.5 / 2);
   const cellSize = TileSize * 1.5;
@@ -21,6 +22,34 @@ export const GameLevel = () => {
 
   const canvasRef = useRef(null);
   const backgroundCanvasRef = useRef(null);
+
+  const player = {
+    isIdle: true,
+    isMoving: false,
+    isAttacking: false,
+    isDead: false,
+    isHit: false,
+    isJumping: false,
+    isFalling: false,
+    isCrouching: false,
+    isClimbing: false,
+    isSwimming: false,
+    isDashing: false,
+    isDodging: false,
+    isBlocking: false,
+    isStunned: false,
+  };
+
+  //idle animation variables
+  let idleAnimationFrame = 0;
+  const idleAnimationSpeed = 125; // Adjust this value for animation speed
+  let lastIdleAnimationFrameTime = 0;
+
+  //torch animation variables
+  const torchFrameTotal = 7;
+  let torchAnimationFrame = 0;
+  const torchAnimationSpeed = 125; // Adjust this value for animation speed
+  let lastTorchAnimationFrameTime = 0;
 
   useEffect(() => {
     //main collision canvas
@@ -42,23 +71,24 @@ export const GameLevel = () => {
     backgroundCtx.mozImageSmoothingEnabled = false;
     backgroundCtx.imageSmoothingEnabled = false;
 
+    const wallTorch = new Image();
+    wallTorch.src = wallTorchSpriteSheet;
+
     const dungeonTiles = new Image();
-    dungeonTiles.src = DungeonTiles;
+    dungeonTiles.src = dungeonTilesSheet;
 
     dungeonTiles.onload = () => {
-      console.log("dungeonTiles.onload");
       renderBackgroundLayer(backgroundCtx, dungeonTiles, gridWidth, gridHeight);
       renderCollisionLayer(backgroundCtx, dungeonTiles);
       playerImage.onload = () => {
-        console.log("playerImage.onload");
         // startGame();
       };
     };
     
     const startGame = () => {  
-
       let flipImage = false;
-      const gameLoop = () => {
+
+      const gameLoop = (timestamp) => {
         ctx.clearRect(0, 0, gridWidth, gridHeight);
 
         ctx.save();
@@ -66,18 +96,59 @@ export const GameLevel = () => {
         if (flipImage) {
           ctx.scale(-1, 1);
         }
-        ctx.drawImage(playerImage, 0, 0, TileSize, TileSize, -playerSize / 2, -playerSize / 2, playerSize, playerSize);
+
+        let spriteSheetPosition = { x: 0, y: 0};
+        spriteSheetPosition = renderPlayer(timestamp);
+
+        ctx.drawImage(
+          playerImage, 
+          spriteSheetPosition.x, 
+          spriteSheetPosition.y, 
+          TileSize, 
+          TileSize, 
+          -playerSize / 2, 
+          -playerSize / 2, 
+          playerSize,
+          playerSize
+        );
         ctx.restore();
 
+        let torchSpriteSheetPosition = renderAnimatedEnvironmentObjects(timestamp);
+        ctx.drawImage(
+          wallTorch, 
+          torchSpriteSheetPosition.x, 
+          torchSpriteSheetPosition.y, 
+          TileSize, 
+          TileSize, 
+          144, 
+          96, 
+          cellSize,
+          cellSize
+        );
+
         //draw player collider box
+        const movementCollisionBox = {
+          x: playerPosition.x + playerSize / 3,
+          y: playerPosition.y + playerSize / 2,
+          width: playerSize * 0.3,
+          height: cellSize * 0.6,
+        };
+
+        const hitBox = {
+          x: playerPosition.x + playerSize * 0.3,
+          y: playerPosition.y + playerSize * 0.2,
+          width: playerSize * 0.4,
+          height: playerSize * 0.7,
+        };
+
         if(showCollisionBox) {
           ctx.strokeStyle = "red"; 
           ctx.lineWidth = 2; 
-          ctx.strokeRect(
-            playerPosition.x + playerSize / 4, 
-            playerPosition.y + playerSize / 4, 
-            playerSize * 0.5, 
-            playerSize * 0.6);
+          ctx.strokeRect(movementCollisionBox.x, movementCollisionBox.y, movementCollisionBox.width, movementCollisionBox.height);
+
+          ctx.strokeStyle = "blue"; 
+          ctx.lineWidth = 2; 
+          ctx.strokeRect(hitBox.x, hitBox.y, hitBox.width, hitBox.height);
         }
 
         const movePlayer = (dx, dy) => {
@@ -86,10 +157,10 @@ export const GameLevel = () => {
 
           const isCollision = collisionObjects.some((obj) => {
             return (
-              newPlayerX + playerSize / 4 < obj.x + obj.width &&
-              newPlayerX + playerSize * 0.75 > obj.x &&
-              newPlayerY + playerSize / 4 < obj.y + obj.height &&
-              newPlayerY + playerSize * 0.75 > obj.y
+              movementCollisionBox.x + dx < obj.x + obj.width &&
+              movementCollisionBox.x + dx + movementCollisionBox.width > obj.x &&
+              movementCollisionBox.y + dy < obj.y + obj.height &&
+              movementCollisionBox.y + dy + movementCollisionBox.height > obj.y
             );
           });
 
@@ -136,18 +207,22 @@ export const GameLevel = () => {
         case 'ArrowLeft':
         case 'a':
           leftKeyPressed = true;
+          player.isIdle = false;
           break;
         case 'ArrowRight':
         case 'd':
           rightKeyPressed = true;
+          player.isIdle = false;
           break;
         case 'ArrowUp':
         case 'w':
           upKeyPressed = true;
+          player.isIdle = false;
           break;
         case 'ArrowDown':
         case 's':
           downKeyPressed = true;
+          player.isIdle = false;
           break;
         default:
           break;
@@ -159,18 +234,22 @@ export const GameLevel = () => {
         case 'ArrowLeft':
         case 'a':
           leftKeyPressed = false;
+          player.isIdle = true;
           break;
         case 'ArrowRight':
         case 'd':
           rightKeyPressed = false;
+          player.isIdle = true;
           break;
         case 'ArrowUp':
         case 'w':
           upKeyPressed = false;
+          player.isIdle = true;
           break;
         case 'ArrowDown':
         case 's':
           downKeyPressed = false;
+          player.isIdle = true;
           break;
         default:
           break;
@@ -185,8 +264,24 @@ export const GameLevel = () => {
     return cleanup;
   }, []);
 
+  const renderPlayer = (timestamp) => {
+    const idleAnimationFrameTotal = 7;
+    if(player.isIdle){
+      const deltaTime = timestamp - lastIdleAnimationFrameTime;
+
+      if (deltaTime >= idleAnimationSpeed) {
+        // Update the animation frame
+        idleAnimationFrame = (idleAnimationFrame + 1) % idleAnimationFrameTotal; // Assuming you have 4 frames
+        lastIdleAnimationFrameTime = timestamp;
+      }
+
+      return {x: idleAnimationFrame * TileSize, y: 0};
+    };
+
+    return {x: 0, y: 0}
+  }
+
   const renderBackgroundLayer = (ctx, spriteSheet, width, height) => {
-    console.log("renderBackgroundLayer");
     ctx.clearRect(0, 0, width, height);
 
     level.baseMap.map((block, index) => {
@@ -199,7 +294,6 @@ export const GameLevel = () => {
   };
 
   const renderCollisionLayer = (ctx, spriteSheet) => {
-    console.log("renderCollisionLayer");
     collisionObjects = [];
 
     level.collisionMap.map((block, index) => {
@@ -217,6 +311,17 @@ export const GameLevel = () => {
       
     });
   };
+
+  const renderAnimatedEnvironmentObjects = (timestamp) => {
+    const deltaTime = timestamp - lastTorchAnimationFrameTime;
+
+    if (deltaTime >= torchAnimationSpeed) {
+      torchAnimationFrame = (torchAnimationFrame + 1) % torchFrameTotal;
+      lastTorchAnimationFrameTime = timestamp;
+    }
+
+    return {x: torchAnimationFrame * TileSize, y: 0};
+  }
 
   return (
     <div>

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { directions } from '../utils/enums';
 
-export const usePlayer = (positionX, positionY, moveSpeed) => {
+export const usePlayer = (position, size, cellSize) => {
   const [playerStats, setPlayerStats] = useState({
-    speed: moveSpeed,
+    speed: 2,
     direction: directions.RIGHT,
     facing: directions.RIGHT,
     animation: 'idle',
@@ -30,81 +30,37 @@ export const usePlayer = (positionX, positionY, moveSpeed) => {
       accessory: null
     }
   });
-  const [playerPosX, setPlayerPosX] = useState(positionX);
-  const [playerPosY, setPlayerPosY] = useState(positionY);
 
-  const movePlayer = (deltaX, deltaY) => {
-    setPlayerPosX(prevX => prevX + deltaX);
-    setPlayerPosY(prevY => prevY + deltaY);
-  }
+  const [player, setPlayer] = useState({
+    isIdle: true,
+    isMoving: false,
+    isAttacking: false,
+    isDead: false,
+    isJumping: false,
+    isFalling: false,
+    isCrouching: false,
+    isDashing: false,
+    isHurt: false,
+  });
 
-  const stopPlayer = () => {
-    setPlayerStats(prev => {
-      return {...prev, moving: false};
-    });
-  }
+  const [hitbox, setHitbox] = useState({
+    x: position.x + size * 0.3,
+    y: position.y + size * 0.2,
+    width: size * 0.4,
+    height: size * 0.7,
+  });
 
-  const attackPlayer = (direction) => {
-    setPlayerStats(prev => {
-      return {...prev, attackDirection: direction, attacking: true};
-    });
-  }
+  const [movementBox, setMovementBox] = useState( {
+    x: position.x + size / 3,
+    y: position.y + size / 2,
+    width: size * 0.3,
+    height: cellSize * 0.6,
+  });
 
-  const stopAttack = () => {
-    setPlayerStats(prev => {
-      return {...prev, attacking: false};
-    });
-  }
-
-  const updatePlayerHealth = (health) => {
-    setPlayerStats(prev => {
-      return {...prev, health};
-    });
-  }
-
-  const updatePlayerExperience = (experience) => {
-    setPlayerStats(prev => {
-      return {...prev, experience};
-    });
-  }
-
-  const updatePlayerLevel = (level) => {
-    setPlayerStats(prev => {
-      return {...prev, level};
-    });
-  }
-
-  const updatePlayerGold = (gold) => {
-    setPlayerStats(prev => {
-      return {...prev, gold};
-    });
-  }
-
-  const updatePlayerDirection = (direction) => {
-    setPlayerStats(prev => {
-      return {...prev, direction};
-    });
-  }
-
-  const updatePlayerFacing = (facing) => {
-    setPlayerStats(prev => {
-      return {...prev, facing};
-    });
-  }
 
   return {
-    playerPosX,
-    playerPosY,
     playerStats,
-    movePlayer,
-    stopPlayer,
-    attackPlayer,
-    stopAttack,
-    updatePlayerHealth,
-    updatePlayerExperience,
-    updatePlayerLevel,
-    updatePlayerGold,
-    updatePlayerDirection,
-    updatePlayerFacing,
+    hitbox,
+    movementBox,
   };
 };
