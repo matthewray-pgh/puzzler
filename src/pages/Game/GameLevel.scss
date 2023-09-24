@@ -40,3 +40,17 @@ $color-white: #ffffff;
   top: 30px;
   left: 0;
 }
+
+.grid-overlay {
+  background-color: transparent;
+  z-index: 2;
+  position: absolute;
+  top: 30px;
+  left: 0;
+
+  font-size: 10px;
+
+  &__row {
+    border: 1px solid $color-white;
+  }
+}
