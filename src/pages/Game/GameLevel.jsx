@@ -36,22 +36,41 @@ const TileSize = level.cellSize;
 export const GameLevel = () => {
   //development tools
   const showGridOverlay = false;
-  const showCollisionBox = false;
+  const showCollisionBox = true;
+  const scale = 1.75;
 
   const [keysPressed, setKeysPressed] = useState([]);
 
   let collisionObjects = [];
 
-  let playerPosition = { x: 600, y: 250 };
-  const playerSpeed = 2.25;
+  let playerPosition = { x: 45, y: 200 };
+  const playerSpeed = 3;
 
-  const playerSize = TileSize * 1.5 + (TileSize * 1.5 / 2);
-  const cellSize = TileSize * 1.5;
+  const playerSize = TileSize * scale + (TileSize * scale / 2);
+  const cellSize = TileSize * scale;
   const gridWidth = level.grid.width * cellSize;
   const gridHeight = level.grid.height * cellSize;
+  const levelWidth = level.level.width * cellSize;
+  const levelHeight = level.level.height * cellSize;
+
+  const camera = { 
+    x: 0, 
+    y: 0,
+    width: gridWidth,
+    height: gridHeight
+  };
+
+  const [display, setDisplay] = useState({
+    health: 10, 
+    mana: 10, 
+    experience: 0, 
+    level: 1, 
+    x: playerPosition.x, 
+    y: playerPosition.y,
+    camera: camera
+  });
 
   const canvasRef = useRef(null);
-  const backgroundCanvasRef = useRef(null);
 
   const player = useMemo(() => {
     return {
@@ -79,13 +98,12 @@ export const GameLevel = () => {
 
   //move animation variables
   let moveAnimationFrame = 0;
-  const moveAnimationSpeed = 135; // Adjust this value for animation speed, HIgher is slower
+  const moveAnimationSpeed = 125; // Adjust this value for animation speed, HIgher is slower
   let lastMoveAnimationFrameTime = 0;
 
   const { renderTorch } = useEnvironmentObject(cellSize, TileSize);
 
   useEffect(() => {
-    //main collision canvas
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
@@ -96,90 +114,67 @@ export const GameLevel = () => {
     const playerImage = new Image();
     playerImage.src = playerMasterSheet;
 
-    //background canvas
-    const backgroundCanvas = backgroundCanvasRef.current;
-    const backgroundCtx = backgroundCanvas.getContext("2d");
-
-    backgroundCtx.webkitImageSmoothingEnabled = false;
-    backgroundCtx.mozImageSmoothingEnabled = false;
-    backgroundCtx.imageSmoothingEnabled = false;
-
     const wallTorch = new Image();
     wallTorch.src = wallTorchSpriteSheet;
 
     const dungeonTiles = new Image();
     dungeonTiles.src = dungeonTilesSheet;
-
-    dungeonTiles.onload = () => {
-      renderBackgroundLayer(backgroundCtx, dungeonTiles, gridWidth, gridHeight);
-      renderCollisionLayer(backgroundCtx, dungeonTiles);
-      playerImage.onload = () => {
-        // startGame();
-      };
-    };
     
     const startGame = () => {  
       let flipImage = false;
 
       const gameLoop = (timestamp) => {
+        updateCamera(cellSize);
+
         ctx.clearRect(0, 0, gridWidth, gridHeight);
+        ctx.save();        
+        ctx.translate(-camera.x, -camera.y);
 
-        ctx.save();
-        ctx.translate(playerPosition.x + playerSize / 2, playerPosition.y + playerSize / 2);
-        if (flipImage) {
-          ctx.scale(-1, 1);
-        }
-
-        let spriteSheetPosition = renderPlayer(timestamp);
-        ctx.drawImage(
-          playerImage, 
-          spriteSheetPosition.x, 
-          spriteSheetPosition.y, 
-          TileSize, 
-          TileSize, 
-          -playerSize / 2, 
-          -playerSize / 2, 
-          playerSize,
-          playerSize
-        );
-        ctx.restore();
+        renderBackgroundLayer(ctx, dungeonTiles, camera.width, camera.height);
+        renderCollisionLayer(ctx, dungeonTiles);
+        showGridOverlay && renderGridOverlay(ctx);
 
         //render torches
-        renderTorch(ctx, timestamp, 144, 96);
-        renderTorch(ctx, timestamp, 336, 96);
-        renderTorch(ctx, timestamp, 144, 242);
-        renderTorch(ctx, timestamp, 336, 242);
-        renderTorch(ctx, timestamp, 144, 384);
-        renderTorch(ctx, timestamp, 336, 384);
+        renderTorch(ctx, timestamp, 3, 2);
+        renderTorch(ctx, timestamp, 7, 2);
+        renderTorch(ctx, timestamp, 3, 6);
+        renderTorch(ctx, timestamp, 7, 6);
+        renderTorch(ctx, timestamp, 5, 4);
+        renderTorch(ctx, timestamp, 13, 5);
+
+        renderPlayer(timestamp, ctx, flipImage, playerImage);
+        
+        ctx.restore();
 
         //draw player collider box
         const movementCollisionBox = {
-          x: playerPosition.x + playerSize / 3,
-          y: playerPosition.y + playerSize / 2,
+          x: playerPosition.x + camera.x + (playerSize / 3),
+          y: playerPosition.y + camera.y + (playerSize / 2),
           width: playerSize * 0.3,
-          height: cellSize * 0.6,
+          height: cellSize * 0.65,
         };
 
         const hitBox = {
-          x: playerPosition.x + playerSize * 0.3,
-          y: playerPosition.y + playerSize * 0.2,
+          x: playerPosition.x + playerSize * 0.3 + camera.x,
+          y: playerPosition.y + playerSize * 0.2 + camera.y,
           width: playerSize * 0.4,
-          height: playerSize * 0.7,
+          height: playerSize * 0.75,
         };
 
         if(showCollisionBox) {
+          //movement
           ctx.strokeStyle = "red"; 
           ctx.lineWidth = 2; 
           ctx.strokeRect(movementCollisionBox.x, movementCollisionBox.y, movementCollisionBox.width, movementCollisionBox.height);
-
+          //hit
           ctx.strokeStyle = "blue"; 
           ctx.lineWidth = 2; 
           ctx.strokeRect(hitBox.x, hitBox.y, hitBox.width, hitBox.height);
         }
 
         const movePlayer = (dx, dy) => {
-          const newPlayerX = playerPosition.x + dx;
-          const newPlayerY = playerPosition.y + dy;
+          const newPlayerX = playerPosition.x + dx * scale;
+          const newPlayerY = playerPosition.y + dy * scale;
 
           const isCollision = collisionObjects.some((obj) => {
             return (
@@ -193,6 +188,7 @@ export const GameLevel = () => {
           if (!isCollision) {
             playerPosition.x = newPlayerX;
             playerPosition.y = newPlayerY;
+            setDisplay((prevState) => ({...prevState, x: playerPosition.x, y: playerPosition.y}));
           }
         };
 
@@ -302,7 +298,27 @@ export const GameLevel = () => {
     }
   }, [keysPressed, player]);
 
-  const renderPlayer = (timestamp) => {
+  const updateCamera = (cellSize) => {
+    const position = {
+      x: playerPosition.x - gridWidth / 2,
+      y: playerPosition.y - gridHeight / 2
+    };
+
+    camera.x = position.x < 0 ? 0 : position.x;
+    camera.y = position.y < 0 ? 0 : position.y;
+
+    if(position.x + camera.width > level.level.width * cellSize) {
+      camera.x = level.level.width * cellSize - camera.width;
+    }
+    if(position.y + camera.height > level.level.height * cellSize) {
+      camera.y = level.level.height * cellSize - camera.height;
+    }
+
+    setDisplay((prevState) => ({...prevState, camera: camera}));
+  };
+
+  const renderPlayer = (timestamp, ctx, flipImage, playerImage) => {
+    let spriteSheetPosition = {x: 0, y: 0};
     const idleAnimationFrameTotal = 7;
     if(player.isIdle){
       const deltaTime = timestamp - lastIdleAnimationFrameTime;
@@ -313,7 +329,7 @@ export const GameLevel = () => {
         lastIdleAnimationFrameTime = timestamp;
       }
 
-      return {x: idleAnimationFrame * TileSize, y: 32};
+      spriteSheetPosition = {x: idleAnimationFrame * TileSize, y: 32};
     };
 
     const moveAnimationFrameTotal = 6;
@@ -326,15 +342,28 @@ export const GameLevel = () => {
         lastMoveAnimationFrameTime = timestamp;
       }
 
-      return {x: moveAnimationFrame * TileSize, y: 64};
+      spriteSheetPosition = {x: moveAnimationFrame * TileSize, y: 64};
     };
 
-    return {x: 0, y: 0}
+    ctx.translate(playerPosition.x + playerSize / 2, playerPosition.y + playerSize / 2);
+    if (flipImage) {
+      ctx.scale(-1, 1);
+    }
+
+    ctx.drawImage(
+      playerImage, 
+      spriteSheetPosition.x, 
+      spriteSheetPosition.y, 
+      TileSize, 
+      TileSize, 
+      -playerSize / 2, 
+      -playerSize / 2, 
+      playerSize,
+      playerSize
+    );
   }
 
-  const renderBackgroundLayer = (ctx, spriteSheet, width, height) => {
-    ctx.clearRect(0, 0, width, height);
-
+  const renderBackgroundLayer = (ctx, spriteSheet) => {
     level.baseMap.map((block, index) => {
       const x = block.x * cellSize;
       const y = block.y * cellSize;
@@ -346,7 +375,6 @@ export const GameLevel = () => {
 
   const renderCollisionLayer = (ctx, spriteSheet) => {
     collisionObjects = [];
-
     level.collisionMap.map((block, index) => {
       const x = block.x * cellSize;
       const y = block.y * cellSize;
@@ -363,6 +391,31 @@ export const GameLevel = () => {
     });
   };
 
+  const renderGridOverlay = (ctx) => {
+    ctx.strokeStyle = "rgb(255, 255, 255)";
+    ctx.font = "14px Arial";
+
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = 0; x <= levelWidth; x += cellSize) {
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, levelHeight);
+    }
+    for (let y = 0; y <= levelHeight; y += cellSize) {
+      ctx.moveTo(0, y);
+      ctx.lineTo(levelWidth, y);
+    }
+
+    for (let x = 0; x < levelWidth; x += cellSize) {
+      for (let y = 0; y < levelHeight; y += cellSize) {
+        // Display the x and y coordinates at the center of each block
+        ctx.fillText(`x:${x/cellSize}`, x + cellSize / 2 - 20, y + 15);
+        ctx.fillText(`y:${y/cellSize}`, x + cellSize / 2 - 20, y + 30);
+      }
+    }
+    ctx.stroke();
+  }
+
   return (
     <div>
       <div className="menu">
@@ -371,31 +424,17 @@ export const GameLevel = () => {
           <button>Pause Game</button>
         </div>
       </div>
-      <div className="level">
-        <canvas className="gameWindow-collisions" ref={canvasRef} width={gridWidth} height={gridHeight} />
-        <canvas className="gameWindow-background" ref={backgroundCanvasRef} width={gridWidth} height={gridHeight} />
-        {showGridOverlay && <GridOverlay width={gridWidth} height={gridHeight} cellSize={cellSize} tileSize={TileSize} />}
+      <div className="details">
+        <div>{`Player x:${display.x} y:${display.y}`}</div>
+        <div>Health: {display.health}</div>
+        <div>Mana: {display.mana}</div>
+        <div>Experience: {display.experience}</div>
+        <div>{`Camera x:${display.camera.x} y:${display.camera.y}`}</div>
+        <div>{`Width:${gridWidth} Height:${gridHeight}`}</div>
       </div>
-    </div>
-  );
-};
-
-const GridOverlay = ({ width, height, cellSize, tileSize }) => {
-  return (
-    <div className="grid-overlay" data-testid="grid-overlay" 
-      style={{ width: width, height: height, display: 'grid', 
-        gridTemplateColumns: `repeat(${width / cellSize}, 1fr)`}}>
-      {Array.from(Array(width / cellSize).keys()).map((x) => (
-        <div key={x} className="grid-overlay__column">
-          {Array.from(Array(height / cellSize).keys()).map((y) => (
-            <div key={y} className="grid-overlay__row" style={{height: cellSize - 2}}>
-              <div>{`${x}, ${y}`}</div>
-              <div>{`${x * tileSize}, ${y * tileSize}`}</div>
-              <div>{`${x * cellSize}, ${y * cellSize}`}</div>
-            </div>
-          ))}
-        </div>
-      ))}
+      <div className="level">
+        <canvas className="gameWindow" ref={canvasRef} width={gridWidth} height={gridHeight} />
+      </div>
     </div>
   );
 };
