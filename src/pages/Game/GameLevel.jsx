@@ -44,7 +44,7 @@ export const GameLevel = () => {
   let collisionObjects = [];
 
   let playerPosition = { x: 45, y: 200 };
-  const playerSpeed = 3;
+  const playerSpeed = 2.5;
 
   const playerSize = TileSize * scale + (TileSize * scale / 2);
   const cellSize = TileSize * scale;
@@ -148,15 +148,15 @@ export const GameLevel = () => {
 
         //draw player collider box
         const movementCollisionBox = {
-          x: playerPosition.x + camera.x + (playerSize / 3),
-          y: playerPosition.y + camera.y + (playerSize / 2),
+          x: playerPosition.x + (playerSize / 3) - camera.x,
+          y: playerPosition.y + (playerSize / 2) - camera.y,
           width: playerSize * 0.3,
           height: cellSize * 0.65,
         };
 
         const hitBox = {
-          x: playerPosition.x + playerSize * 0.3 + camera.x,
-          y: playerPosition.y + playerSize * 0.2 + camera.y,
+          x: playerPosition.x + (playerSize * 0.3) - camera.x,
+          y: playerPosition.y + (playerSize * 0.2) - camera.y,
           width: playerSize * 0.4,
           height: playerSize * 0.75,
         };
@@ -173,15 +173,15 @@ export const GameLevel = () => {
         }
 
         const movePlayer = (dx, dy) => {
-          const newPlayerX = playerPosition.x + dx * scale;
-          const newPlayerY = playerPosition.y + dy * scale;
+          const newPlayerX = playerPosition.x + dx;
+          const newPlayerY = playerPosition.y + dy;
 
           const isCollision = collisionObjects.some((obj) => {
             return (
-              movementCollisionBox.x + dx < obj.x + obj.width &&
-              movementCollisionBox.x + dx + movementCollisionBox.width > obj.x &&
-              movementCollisionBox.y + dy < obj.y + obj.height &&
-              movementCollisionBox.y + dy + movementCollisionBox.height > obj.y
+              movementCollisionBox.x + dx + camera.x < obj.x + obj.width &&
+              movementCollisionBox.x + dx + movementCollisionBox.width + camera.x > obj.x &&
+              movementCollisionBox.y + dy + camera.y < obj.y + obj.height &&
+              movementCollisionBox.y + dy + movementCollisionBox.height + camera.y > obj.y
             );
           });
 
@@ -414,6 +414,25 @@ export const GameLevel = () => {
       }
     }
     ctx.stroke();
+  }
+
+  const detectCollision = (player, object) => {
+    const playerX = player.x + player.width / 2;
+    const playerY = player.y + player.height / 2;
+    const objectX = object.x + object.width / 2;
+    const objectY = object.y + object.height / 2;
+
+    const distanceX = Math.abs(playerX - objectX);
+    const distanceY = Math.abs(playerY - objectY);
+
+    if (distanceX > player.width / 2 + object.width / 2) {
+      return false;
+    }
+    if (distanceY > player.height / 2 + object.height / 2) {
+      return false;
+    }
+
+    return true;
   }
 
   return (
