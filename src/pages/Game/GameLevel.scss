@@ -20,34 +20,25 @@ $color-white: #ffffff;
   }
 }
 
-.gameWindow {
-  border: 2px solid $color-white;
+.details {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-content: center;
+  justify-content: center;
+  padding: 0 10px;
 }
 
-.gameWindow-collisions {
+.gameWindow {
   background-color: transparent;
   border: 2px solid $color-white;
-  z-index: 1;
-  position: absolute;
-  top: 30px;
-  left: 0;
-}
-
-.gameWindow-background {
-  border: 2px solid $color-white;
-  z-index: 0;
-  position: absolute;
-  top: 30px;
-  left: 0;
 }
 
 .grid-overlay {
-  background-color: transparent;
-  z-index: 2;
   position: absolute;
-  top: 30px;
+  top: 70px;
   left: 0;
-
+;
+  z-index: 2;
   font-size: 10px;
 
   &__row {

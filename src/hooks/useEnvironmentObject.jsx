@@ -33,8 +33,8 @@
       y, 
       tileSize, 
       tileSize, 
-      xPosition, 
-      yPosition, 
+      xPosition * cellSize, 
+      yPosition * cellSize, 
       cellSize,
       cellSize
     );
