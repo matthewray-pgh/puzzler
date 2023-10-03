@@ -36,7 +36,7 @@ const TileSize = level.cellSize;
 export const GameLevel = () => {
   //development tools
   const showGridOverlay = false;
-  const showCollisionBox = true;
+  const showCollisionBox = false;
   const scale = 1.75;
 
   const [keysPressed, setKeysPressed] = useState([]);
