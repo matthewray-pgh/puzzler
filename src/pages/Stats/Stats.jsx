@@ -5,9 +5,8 @@ import "./Stats.scss";
 
 export const Stats = () => {
   return (
-    <div>
+    <div className="stats">
       <h1>Stats</h1>
-      <p>Stats Page</p>
       <Link to="/">Home</Link>
     </div>
   );
