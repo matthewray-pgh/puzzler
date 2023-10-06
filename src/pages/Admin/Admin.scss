@@ -1,0 +1,125 @@
+@import '../../assets/styles/variables.scss';
+
+.admin {
+  height: 100%;  
+  color: $font-primary;
+  background-color: $background;
+  font-family: $font-family;
+
+  padding: 20px;
+  
+  h1 {
+    margin: 0 auto;
+    padding: 10px 0;
+    font-size: 36px;
+  }
+
+  a {
+    color: $font-primary;
+    text-decoration: none;
+    font-size: 24px;
+
+    &:hover {
+      padding-left: 5px;
+      font-weight: bold;
+    }
+  }
+
+  label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 24px;
+  }
+
+  input {
+    padding: 10px;
+    width: calc(100% - 20px);
+
+    background-color: $background;
+    color: $font-primary;
+
+    border: 2px solid $border-color;
+    border-radius: 4px;
+
+    font-family: $font-family;
+    font-size: 24px;
+    font-weight: 600;
+  }
+
+  button {
+    border: none;
+    border-radius: 4px;
+    background-color: $button-color;
+    color: $font-primary;
+    font-family: $font-family;
+    font-size: 24px;
+    padding: 10px 20px;
+    cursor: pointer;
+
+    &:active {
+      transform: translateY(2px);
+      background-color: darken($button-color, 10%);
+    }
+
+    &:hover {
+      background-color: darken($button-color, 10%);
+    }
+
+    &.image-button {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      grid-gap: 20px; 
+      width: calc(100% - 10px);
+      margin-bottom: 10px; 
+      text-align: left;
+    }
+
+    &.current-image-button {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      grid-gap: 20px;
+      width: calc(100% - 10px); 
+      margin-bottom: 10px;
+      text-align: left;
+
+      background-color: lighten($button-color, 20%);
+    }
+  }
+
+  &__generate {
+    &--form {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      grid-gap: 10px;
+
+      margin-bottom: 20px;
+    }
+  }
+
+  &__map--preview {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    grid-gap: 10px;
+  }
+}
+
+.panel {
+  margin-bottom: 20px;
+  border: 2px solid $border-color;
+  border-radius: 4px;
+  padding: 10px;
+  overflow-y: scroll;
+
+  h3 {
+    margin: 0;
+    padding: 0;
+    font-size: 24px;
+  }
+}
+
+.tile {
+  height: 32px;
+  width: 32px;
+  text-align: center;
+}
+
