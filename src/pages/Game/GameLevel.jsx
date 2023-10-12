@@ -9,6 +9,7 @@ import wallTorchSpriteSheet from "../../assets/images/torch-Sheet.png";
 import { useEnvironmentObject } from "../../hooks/useEnvironmentObject";
 
 const TileSize = level.cellSize;
+const cameraDimensions = {width: 15, height: 9};
 
 // grate
 // skull stone
@@ -37,7 +38,7 @@ export const GameLevel = () => {
   //development tools
   const showGridOverlay = false;
   const showCollisionBox = false;
-  const scale = 1.75;
+  const scale = 2;
 
   const [keysPressed, setKeysPressed] = useState([]);
 
@@ -48,8 +49,8 @@ export const GameLevel = () => {
 
   const playerSize = TileSize * scale + (TileSize * scale / 2);
   const cellSize = TileSize * scale;
-  const gridWidth = level.grid.width * cellSize;
-  const gridHeight = level.grid.height * cellSize;
+  const gridWidth = cameraDimensions.width * cellSize;
+  const gridHeight = cameraDimensions.height * cellSize;
   const levelWidth = level.level.width * cellSize;
   const levelHeight = level.level.height * cellSize;
 

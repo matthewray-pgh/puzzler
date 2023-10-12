@@ -1,38 +1,30 @@
 {
   "cellSize": 32,
-  "gridSize": 10,
-  "grid": {
-    "width": 15,
-    "height": 8
-  },
   "level": {
     "width": 17,
     "height": 15
   },
-  "player": {
-    "speed": 2
-  },
   "dungeonTileKey": [
-    { "id": "a0", "x": 0, "y": 0, "detail": "cornerTopleft" },
-    { "id": "a1", "x": 32, "y": 0, "detail": "topWall1" },
-    { "id": "a2", "x": 64, "y": 0, "detail": "topWall2" },
-    { "id": "a3", "x": 96, "y": 0, "detail": "topWallSeperator" },
-    { "id": "a4", "x": 128, "y": 0, "detail": "cornerTopRight" },
-    { "id": "b0", "x": 0, "y": 32, "detail": "leftWall1" },
-    { "id": "b1", "x": 32, "y": 32, "detail": "pillar1" },
-    { "id": "b2", "x": 64, "y": 32, "detail": "floorTileDamaged1" },
-    { "id": "b3", "x": 96, "y": 32, "detail": "wallDoorwayTop" },
-    { "id": "b4", "x": 128, "y": 32, "detail": "rightWall1" },
-    { "id": "c0", "x": 0, "y": 64, "detail": "leftWall2" },
-    { "id": "c1", "x": 32, "y": 64, "detail": "floorTile1" },
-    { "id": "c2", "x": 64, "y": 64, "detail": "floorTile2" },
-    { "id": "c3", "x": 96, "y": 64, "detail": "wallDoorwayBottom" },
-    { "id": "c4", "x": 128, "y": 64, "detail": "rightWall2" },
-    { "id": "d0", "x": 0, "y": 96, "detail": "cornerBottomLeft" },
-    { "id": "d1", "x": 32, "y": 96, "detail": "bottomWall1" },
-    { "id": "d2", "x": 64, "y": 96, "detail": "bottomWall2" },
-    { "id": "d3", "x": 96, "y": 96, "detail": "bottomWallSeperator" },
-    { "id": "d4", "x": 128, "y": 96, "detail": "cornerBottomRight" }
+    { "id": "a0", "layer": 1, "x": 0, "y": 0, "detail": "cornerTopleft" },
+    { "id": "a1", "layer": 1, "x": 32, "y": 0, "detail": "topWall1" },
+    { "id": "a2", "layer": 1, "x": 64, "y": 0, "detail": "topWall2" },
+    { "id": "a3", "layer": 1, "x": 96, "y": 0, "detail": "topWallSeperator" },
+    { "id": "a4", "layer": 1, "x": 128, "y": 0, "detail": "cornerTopRight" },
+    { "id": "b0", "layer": 1, "x": 0, "y": 32, "detail": "leftWall1" },
+    { "id": "b1", "layer": 1, "x": 32, "y": 32, "detail": "pillar1" },
+    { "id": "b2", "layer": 0, "x": 64, "y": 32, "detail": "floorTileDamaged1" },
+    { "id": "b3", "layer": 1, "x": 96, "y": 32, "detail": "wallDoorwayTop" },
+    { "id": "b4", "layer": 1, "x": 128, "y": 32, "detail": "rightWall1" },
+    { "id": "c0", "layer": 1, "x": 0, "y": 64, "detail": "leftWall2" },
+    { "id": "c1", "layer": 0, "x": 32, "y": 64, "detail": "floorTile1" },
+    { "id": "c2", "layer": 0, "x": 64, "y": 64, "detail": "floorTile2" },
+    { "id": "c3", "layer": 1, "x": 96, "y": 64, "detail": "wallDoorwayBottom" },
+    { "id": "c4", "layer": 1, "x": 128, "y": 64, "detail": "rightWall2" },
+    { "id": "d0", "layer": 1, "x": 0, "y": 96, "detail": "cornerBottomLeft" },
+    { "id": "d1", "layer": 1, "x": 32, "y": 96, "detail": "bottomWall1" },
+    { "id": "d2", "layer": 1, "x": 64, "y": 96, "detail": "bottomWall2" },
+    { "id": "d3", "layer": 1, "x": 96, "y": 96, "detail": "bottomWallSeperator" },
+    { "id": "d4", "layer": 1, "x": 128, "y": 96, "detail": "cornerBottomRight" }
   ],
   "baseTiles": ["b2", "c1", "c2"],
   "baseMap": [

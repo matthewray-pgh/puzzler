@@ -17,7 +17,7 @@ export const Home = () => {
       </div>
 
       <div>
-        <Link to="/admin">Admin</Link>
+        <Link to="/levelBuilder">Level Builder</Link>
       </div>
 
     </div>

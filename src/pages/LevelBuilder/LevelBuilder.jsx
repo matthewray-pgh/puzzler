@@ -1,21 +1,22 @@
 import React, {useState, useEffect, useCallback, useMemo} from 'react';
 import { Link } from 'react-router-dom';
 
-import './Admin.scss';
+import './LevelBuilder.scss';
 
 import levelDetails from "../../assets/levelOne.json";
 import dungeonTilesSheet from "../../assets/images/DungeonTiles.png";
 
-const showCoordinates = false;
+const pixelsPerTile = 32;
 
-export const Admin = () => {
-  const [outputJson, setOutputJson] = useState('output printed here....');
-  const [level, setLevel] = useState({x: '', y: ''});
-  const [backgroundTiles, setBackgroundTiles] = useState([]);
+export const LevelBuilder = () => {
+  const [outputJson, setOutputJson] = useState('');
+  const [level, setLevel] = useState({x: '', y: '', zoomSize: 1});
+  const [levelTiles, setLevelTiles] = useState([]);
   const [current, setCurrent] = useState({x: '', y: ''});
   const [tileSelected, setTileSelected] = useState('');
 
   const buildMap = (x, y) => {
+    //check if levelTiles is empty
     let map = [];
     Array.from({length: y}).map((_, i) => {
       return (
@@ -35,62 +36,75 @@ export const Admin = () => {
   };
 
   const handleTileClick = useCallback((x, y) => {
-    if(tileSelected !== '') {
-      const updateTileIndex = backgroundTiles.findIndex(tile => tile.x === x && tile.y === y);
-      const newTileSet = [...backgroundTiles];
-      newTileSet[updateTileIndex] = {x: x, y: y, id: tileSelected};;
-      setBackgroundTiles(newTileSet);
+    if(tileSelected === 'reset') {
+      const updateTileIndex = levelTiles.findIndex(tile => tile.x === x && tile.y === y);
+      const newTileSet = [...levelTiles];
+      newTileSet[updateTileIndex] = {x: x, y: y, id: ''};
+      setLevelTiles(newTileSet);
+    }
+    else if (tileSelected !== '') {
+      const updateTileIndex = levelTiles.findIndex(tile => tile.x === x && tile.y === y);
+      const newTileSet = [...levelTiles];
+      newTileSet[updateTileIndex] = {x: x, y: y, id: tileSelected};
+      setLevelTiles(newTileSet);
     }
     setCurrent({x: x, y: y});
-  },[backgroundTiles, tileSelected]);
+  },[levelTiles, tileSelected]);
 
   const generateMap = useCallback(() => {
-    setBackgroundTiles(buildMap(level.x, level.y));
+    setLevelTiles(buildMap(level.x, level.y));
   }, [level]);
 
   const generateJson = useCallback(() => {
-    const json = JSON.stringify(backgroundTiles);
+    const json = JSON.stringify(levelTiles);
     setOutputJson(json);
-  }, [backgroundTiles]);
+  }, [levelTiles]);
 
   const Tiles = useMemo(() => {
-    return backgroundTiles.map((tile, i) => {
+    return levelTiles.map((tile, i) => {
       const key = `${tile.x}-${tile.y}`;
       const tileDetail = levelDetails.dungeonTileKey.find(tileKey => tileKey.id === tile.id);
       return (
         <div 
           key={key} 
-          className="tile"
           style={{
-            backgroundImage: `url(${dungeonTilesSheet})`,
-            backgroundPosition: `-${tileDetail.x}px -${tileDetail.y}px`,
-            }}
+            backgroundImage: tileDetail && `url(${dungeonTilesSheet})`,
+            backgroundPosition: tileDetail && `-${tileDetail.x / pixelsPerTile * 100}% -${tileDetail.y / pixelsPerTile * 100}%`,
+            backgroundSize: '500% 400%',
+            height: `${pixelsPerTile}px`,
+            width: `${pixelsPerTile}px`,
+            transform: `scale(${level.zoomSize})`,
+          }}
           onClick={() => {handleTileClick(tile.x, tile.y)}}
         >
-          {showCoordinates && `${tile.x},${tile.y}`}
         </div>
       )
     })
-  }, [backgroundTiles, handleTileClick]);
+  }, [levelTiles, handleTileClick, level]);
 
   const handleTileButtonClick = (id) => {
+    if(id === tileSelected) {
+      setTileSelected('');
+      return;
+    }
     setTileSelected(id);
-  }
+  };
 
   useEffect(() => {
-    console.log('backgroundTiles', backgroundTiles);
-  }, [backgroundTiles]);
+    console.log('levelTiles', levelTiles);
+  }, [levelTiles]);
 
   return (
     <div className="admin">
-      <h1>Admin</h1>
+      <h1>Level Builder</h1>
       <Link to="/">Home</Link>
 
       <section className="admin__generate">
         <h2>Generate Game Level</h2>
+
         <section className="admin__generate--form">
           <div>
-            <label htmlFor="x">Width[x]</label>
+            <label htmlFor="x">Width [x]</label>
             <input 
               name="x" 
               type="text" 
@@ -100,7 +114,7 @@ export const Admin = () => {
             />
           </div>
           <div>
-            <label htmlFor="y">Height[y]</label>
+            <label htmlFor="y">Height [y]</label>
             <input 
               name="y" 
               type="text" 
@@ -109,8 +123,20 @@ export const Admin = () => {
               value={level.y} 
             />
           </div>
+          <div>
+            <label htmlFor="zoomSize">Zoom [pixel size]</label>
+            <select 
+              name="zoomSize" 
+              onChange={(e) => handleInputChange(e)}
+              value={level.zoomSize}
+            >
+              <option value={1}>32</option>
+              <option value={2}>64</option>
+              <option value={3}>96</option>
+            </select>
+          </div>
           <button onClick={generateMap}>Generate Map</button>
-          <button onClick={generateJson}>Generate Json</button>
+          <button onClick={generateJson}>Save Level [Output Json]</button>
         </section>
 
         <section className="admin__map--preview">
@@ -118,6 +144,12 @@ export const Admin = () => {
             <h3>Edit Options </h3>
 
             <div style={{padding: '10px'}}>
+              <button 
+                className={'reset' === tileSelected ? "current-image-button" : "image-button"}
+                onClick={() => handleTileButtonClick('reset')}>
+                  <div style={{border: '3px solid #fff', height: '26px', width: '26px'}}></div>
+                  clear cell
+                </button>
               {levelDetails.dungeonTileKey.map((tile, i) => {
                 return (
                   <button 
@@ -141,7 +173,13 @@ export const Admin = () => {
           <div className="panel">
             <h3>Map: </h3>
             <div>Selected: {`[x:${current.x}, y:${current.y}]`}</div>
-            <div style={{padding: '10px', display: 'grid', gridTemplateColumns: `repeat(${level.x}, 32px)`}}>
+            <div style={{
+              margin: '30px', 
+              height: `${level.zoomSize * pixelsPerTile * level.y}px`,
+              width: `${level.zoomSize * pixelsPerTile * level.x}px`,
+              display: 'grid', 
+              gridTemplateColumns: `repeat(${level.x}, ${pixelsPerTile * level.zoomSize}px)`,
+            }}>
               {Tiles}
             </div>
             <div>{outputJson}</div>
