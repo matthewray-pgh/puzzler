@@ -46,6 +46,21 @@
     font-weight: 600;
   }
 
+  select {
+    padding: 10px;
+    width: 100%;
+
+    background-color: $background;
+    color: $font-primary;
+
+    border: 2px solid $border-color;
+    border-radius: 4px;
+
+    font-family: $font-family;
+    font-size: 24px;
+    font-weight: 600;
+  }
+
   button {
     border: none;
     border-radius: 4px;
@@ -84,6 +99,10 @@
 
       background-color: lighten($button-color, 20%);
     }
+
+    &.current-button {
+      background-color: lighten($button-color, 20%);
+    }
   }
 
   &__generate {
@@ -115,11 +134,5 @@
     padding: 0;
     font-size: 24px;
   }
-}
-
-.tile {
-  height: 32px;
-  width: 32px;
-  text-align: center;
 }
 
