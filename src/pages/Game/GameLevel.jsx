@@ -7,6 +7,7 @@ import playerMasterSheet from "../../assets/images/character-master.png"
 import wallTorchSpriteSheet from "../../assets/images/torch-Sheet.png";
 
 import { useEnvironmentObject } from "../../hooks/useEnvironmentObject";
+import { HUD } from "../../components/HUD";
 
 const TileSize = level.cellSize;
 const cameraDimensions = {width: 15, height: 9};
@@ -287,6 +288,7 @@ export const GameLevel = () => {
     startGame();
 
     return cleanup;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -376,6 +378,7 @@ export const GameLevel = () => {
 
   const renderCollisionLayer = (ctx, spriteSheet) => {
     collisionObjects = [];
+    // eslint-disable-next-line array-callback-return
     level.collisionMap.map((block, index) => {
       const x = block.x * cellSize;
       const y = block.y * cellSize;
@@ -417,43 +420,25 @@ export const GameLevel = () => {
     ctx.stroke();
   }
 
-  const detectCollision = (player, object) => {
-    const playerX = player.x + player.width / 2;
-    const playerY = player.y + player.height / 2;
-    const objectX = object.x + object.width / 2;
-    const objectY = object.y + object.height / 2;
-
-    const distanceX = Math.abs(playerX - objectX);
-    const distanceY = Math.abs(playerY - objectY);
-
-    if (distanceX > player.width / 2 + object.width / 2) {
-      return false;
-    }
-    if (distanceY > player.height / 2 + object.height / 2) {
-      return false;
-    }
-
-    return true;
-  }
-
   return (
     <div>
       <div className="menu">
-        <div>My Game - Dungeon Explorer</div>
+        <div className="menu__title">Dungeon Explorer</div>
         <div className="menu__buttons">
-          <button>Pause Game</button>
+          <button>Menu</button>
         </div>
       </div>
       <div className="details">
-        <div>{`Player x:${display.x} y:${display.y}`}</div>
-        <div>Health: {display.health}</div>
-        <div>Mana: {display.mana}</div>
-        <div>Experience: {display.experience}</div>
-        <div>{`Camera x:${display.camera.x} y:${display.camera.y}`}</div>
-        <div>{`Width:${gridWidth} Height:${gridHeight}`}</div>
+        {/* <div>{`Player x:${display.x} y:${display.y}`}</div> */}
+        {/* <div>Health: {display.health}</div> */}
+        {/* <div>Mana: {display.mana}</div> */}
+        {/* <div>Experience: {display.experience}</div> */}
+        {/* <div>{`Camera x:${display.camera.x} y:${display.camera.y}`}</div> */}
+        {/* <div>{`Width:${gridWidth} Height:${gridHeight}`}</div> */}
       </div>
-      <div className="level">
+      <div className="level" style={{width: gridWidth, height: gridHeight}}>
         <canvas className="gameWindow" ref={canvasRef} width={gridWidth} height={gridHeight} />
+        <HUD health={{current:3, totalHealth:3}} magic={{currentMagic:0, totalMagic:1}}/>
       </div>
     </div>
   );

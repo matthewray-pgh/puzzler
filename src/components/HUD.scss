@@ -1,0 +1,32 @@
+@import '../assets/styles/variables.scss';
+
+.hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  background-color: transparent;
+
+  padding: 10px 20px;
+
+  font-family: $font-family;
+  font-size: 30px;
+  color: $font-primary;
+  text-shadow: 2px 2px $background;
+
+  h3 {
+    margin: 0;
+    padding: 0px;
+  }
+
+  &__health {
+    display: grid;
+    grid-template-columns: 100px repeat(10, auto);
+    margin-bottom: 5px;
+  }
+
+  &__magic {
+    display: grid;
+    grid-template-columns: 100px repeat(10, auto);
+  }
+}
