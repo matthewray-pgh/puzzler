@@ -1,10 +1,10 @@
-$level-background-color: #282c34;
-$color-white: #ffffff;
+@import '../../assets/styles/variables.scss';
 
 .level {
-  background-color: $level-background-color;
-  color: $color-white;
+  background-color: $background;
+  color: $font-primary;
   min-height: 100vh;
+  position: relative;
 }
 
 .menu {
@@ -12,11 +12,40 @@ $color-white: #ffffff;
   grid-template-columns: auto 1fr;
   align-content: center;  
 
-  height: 30px;
-  padding: 0 10px;
+  padding: 10px;
+
+  background-color: $background;
+  color: $font-primary;
+  font-family: $font-family;
+
+  &__title {
+    font-size: 25px;
+    margin: 0;
+    padding: 0;
+  }
 
   &__buttons {
     justify-self: end;
+  }
+
+  button {
+    background-color: $button-color;
+    color: $font-primary;
+    border: none;
+    border-radius: 4px;
+
+    font-family: $font-family;
+    font-size: 18px;
+    padding: 5px 10px;
+
+    &:hover {
+      cursor: pointer;
+      background-color: darken($button-color, 10%);
+    }
+
+    &:active {
+      transform: translateY(2px);
+    }
   }
 }
 
@@ -29,19 +58,10 @@ $color-white: #ffffff;
 }
 
 .gameWindow {
-  background-color: transparent;
-  border: 2px solid $color-white;
-}
-
-.grid-overlay {
   position: absolute;
-  top: 70px;
+  top: 0;
   left: 0;
-;
-  z-index: 2;
-  font-size: 10px;
 
-  &__row {
-    border: 1px solid $color-white;
-  }
+  background-color: transparent;
+  border: 2px solid $border-color;
 }
