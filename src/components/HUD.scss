@@ -1,13 +1,8 @@
 @import '../assets/styles/variables.scss';
 
 .hud {
-  position: absolute;
-  top: 0;
-  left: 0;
-
   background-color: transparent;
-
-  padding: 10px 20px;
+  padding: 0 10px;
 
   font-family: $font-family;
   font-size: 30px;
@@ -20,8 +15,6 @@
   }
 
   &__health {
-    display: grid;
-    grid-template-columns: 100px repeat(10, auto);
     margin-bottom: 5px;
   }
 

@@ -1,16 +1,15 @@
 @import '../../assets/styles/variables.scss';
 
-.level {
+.game-level {
   background-color: $background;
   color: $font-primary;
   min-height: 100vh;
-  position: relative;
 }
 
 .menu {
   display: grid;
   grid-template-columns: auto 1fr;
-  align-content: center;  
+  align-content: center;
 
   padding: 10px;
 
@@ -49,6 +48,15 @@
   }
 }
 
+.level {
+  background-color: $background;
+  color: $font-primary;
+  min-height: 100vh;
+}
+
+.hud {
+}
+
 .details {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -58,10 +66,6 @@
 }
 
 .gameWindow {
-  position: absolute;
-  top: 0;
-  left: 0;
-
   background-color: transparent;
   border: 2px solid $border-color;
 }
