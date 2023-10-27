@@ -306,7 +306,6 @@
     { "x": 4, "y": 9, "tileKey": "c0" },
     { "x": 4, "y": 10, "tileKey": "b3" },
     { "x": 5, "y": 0, "tileKey": "a1" },
-    { "x": 5, "y": 4, "tileKey": "b1" },
     { "x": 6, "y": 0, "tileKey": "a2" },
     { "x": 6, "y": 8, "tileKey": "a0" },
     { "x": 6, "y": 9, "tileKey": "b0" },

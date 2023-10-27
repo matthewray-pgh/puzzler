@@ -4,14 +4,14 @@ import './GameLevel.scss';
 import level from "../../assets/levelOne.json";
 import dungeonTilesSheet from "../../assets/images/DungeonTiles.png";
 import playerMasterSheet from "../../assets/images/character-master.png"
-import wallTorchSpriteSheet from "../../assets/images/torch-Sheet.png";
 
 import { useEnvironmentObject } from "../../hooks/useEnvironmentObject";
+import { useMob } from "../../hooks/useMobs";
+
 import { HUD } from "../../components/HUD";
 
 const TileSize = level.cellSize;
 const cameraDimensions = {width: 15, height: 9};
-
 // grate
 // skull stone
 // spider web
@@ -38,16 +38,8 @@ const cameraDimensions = {width: 15, height: 9};
 export const GameLevel = () => {
   //development tools
   const showGridOverlay = false;
-  const showCollisionBox = false;
+  const showCollisionBox = true;
   const scale = 2;
-
-  const [keysPressed, setKeysPressed] = useState([]);
-
-  let collisionObjects = [];
-
-  let playerPosition = { x: 45, y: 200 };
-  const playerSpeed = 2.5;
-
   const playerSize = TileSize * scale + (TileSize * scale / 2);
   const cellSize = TileSize * scale;
   const gridWidth = cameraDimensions.width * cellSize;
@@ -55,24 +47,15 @@ export const GameLevel = () => {
   const levelWidth = level.level.width * cellSize;
   const levelHeight = level.level.height * cellSize;
 
-  const camera = { 
-    x: 0, 
-    y: 0,
-    width: gridWidth,
-    height: gridHeight
-  };
+  const [keysPressed, setKeysPressed] = useState([]);
 
-  const [display, setDisplay] = useState({
-    health: 10, 
-    mana: 10, 
-    experience: 0, 
-    level: 1, 
-    x: playerPosition.x, 
-    y: playerPosition.y,
-    camera: camera
-  });
+  let collisionObjects = [];
 
-  const canvasRef = useRef(null);
+  let playerPosition = { x: 1 * cellSize, y: 3 * cellSize };
+  const playerSpeed = 2.5;
+
+  const [playerHealth, setPlayerHealth] = useState({ total: 3, current: 3 });
+  const [playerMagic, setPlayerMagic] = useState({ total: 1, current: 1 });
 
   const player = useMemo(() => {
     return {
@@ -85,13 +68,28 @@ export const GameLevel = () => {
       isFalling: false,
       isCrouching: false,
       isClimbing: false,
-      isSwimming: false,
       isDashing: false,
       isDodging: false,
       isBlocking: false,
       isStunned: false,
     };
   }, []);
+
+  const camera = { 
+    x: 0, 
+    y: 0,
+    width: gridWidth,
+    height: gridHeight
+  };
+
+  const [display, setDisplay] = useState({
+    level: 1, 
+    x: playerPosition.x, 
+    y: playerPosition.y,
+    camera: camera
+  });
+
+  const canvasRef = useRef(null);
 
   //idle animation variables
   let idleAnimationFrame = 0;
@@ -105,6 +103,12 @@ export const GameLevel = () => {
 
   const { renderTorch } = useEnvironmentObject(cellSize, TileSize);
 
+  const mobs = [];
+  const ghoul = useMob(cellSize, TileSize, playerSize, [{x: 1, y: 0.5}, {x: 8.75, y: 0.5}, {x: 8, y: 6.5}, {x: 1.5, y: 6.5}]);
+  mobs.push(ghoul);
+  // const ghoul2 = useMob(cellSize, TileSize, playerSize, [{x: 11, y: 1}, {x: 11.5, y: 8.25}, {x: 14.75, y: 8}, {x: 14.25, y: 1.75}]);
+  // mobs.push(ghoul2);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -115,9 +119,6 @@ export const GameLevel = () => {
 
     const playerImage = new Image();
     playerImage.src = playerMasterSheet;
-
-    const wallTorch = new Image();
-    wallTorch.src = wallTorchSpriteSheet;
 
     const dungeonTiles = new Image();
     dungeonTiles.src = dungeonTilesSheet;
@@ -141,11 +142,17 @@ export const GameLevel = () => {
         renderTorch(ctx, timestamp, 7, 2);
         renderTorch(ctx, timestamp, 3, 6);
         renderTorch(ctx, timestamp, 7, 6);
-        renderTorch(ctx, timestamp, 5, 4);
-        renderTorch(ctx, timestamp, 13, 5);
 
+        //render mobs 
+        ghoul.moveMob();
+        ghoul.renderGhoul(ctx, timestamp, showCollisionBox);
+
+        // ghoul2.moveMob();
+        // ghoul2.renderGhoul(ctx, timestamp, showCollisionBox);
+
+        //render player
         renderPlayer(timestamp, ctx, flipImage, playerImage);
-        
+
         ctx.restore();
 
         //draw player collider box
@@ -165,11 +172,11 @@ export const GameLevel = () => {
 
         if(showCollisionBox) {
           //movement
-          ctx.strokeStyle = "red"; 
+          ctx.strokeStyle = "fuchsia"; 
           ctx.lineWidth = 2; 
           ctx.strokeRect(movementCollisionBox.x, movementCollisionBox.y, movementCollisionBox.width, movementCollisionBox.height);
           //hit
-          ctx.strokeStyle = "blue"; 
+          ctx.strokeStyle = "aqua"; 
           ctx.lineWidth = 2; 
           ctx.strokeRect(hitBox.x, hitBox.y, hitBox.width, hitBox.height);
         }
@@ -210,10 +217,33 @@ export const GameLevel = () => {
           movePlayer(0, playerSpeed);
         }
 
+        checkCollisions(hitBox);
+        
         requestAnimationFrame(gameLoop);
       };
 
       gameLoop();
+    };
+
+    const checkCollisions = (playerCollisionBox) => {
+      // Loop through each mob and check for collision with the player.
+      mobs.forEach((mob) => {
+        //console.log('mob:x', mob.mob.position.x * cellSize + mob.mob.collisionBox.x, 'y', mob.mob.position.y * cellSize + mob.mob.collisionBox.y);
+        //console.log('player:x', playerCollisionBox.x, 'y', playerCollisionBox.y);
+        if (
+          playerCollisionBox.x + camera.x < mob.mob.position.x * cellSize + mob.mob.collisionBox.x + mob.mob.collisionBox.width &&
+          playerCollisionBox.x + playerCollisionBox.width + camera.x > mob.mob.position.x * cellSize + mob.mob.collisionBox.x &&
+          playerCollisionBox.y + camera.y < mob.mob.position.y * cellSize + mob.mob.collisionBox.y + mob.mob.collisionBox.height &&
+          playerCollisionBox.y + playerCollisionBox.height + camera.y > mob.mob.position.y * cellSize + mob.mob.collisionBox.y
+        ) {
+          // Collision detected with this mob. You can handle it here (e.g., reduce player health).
+          console.log('collision detected with mob!!!');
+          player.isHit = true;
+          if(player.isHit){
+            setPlayerHealth((prevState) => ({...prevState, current: prevState.current - 1}));
+          };
+        }
+      });
     };
 
     const cleanup = () => {
@@ -421,7 +451,7 @@ export const GameLevel = () => {
   }
 
   return (
-    <div>
+    <div className="game-level">
       <div className="menu">
         <div className="menu__title">Dungeon Explorer</div>
         <div className="menu__buttons">
@@ -430,15 +460,18 @@ export const GameLevel = () => {
       </div>
       <div className="details">
         {/* <div>{`Player x:${display.x} y:${display.y}`}</div> */}
+        {/* <div>{`Player x:${display.x / 32} y:${display.y / 32}`}</div> */}
         {/* <div>Health: {display.health}</div> */}
         {/* <div>Mana: {display.mana}</div> */}
         {/* <div>Experience: {display.experience}</div> */}
         {/* <div>{`Camera x:${display.camera.x} y:${display.camera.y}`}</div> */}
         {/* <div>{`Width:${gridWidth} Height:${gridHeight}`}</div> */}
       </div>
+      <div className="hud">
+        <HUD health={playerHealth} magic={playerMagic}/>
+      </div>
       <div className="level" style={{width: gridWidth, height: gridHeight}}>
         <canvas className="gameWindow" ref={canvasRef} width={gridWidth} height={gridHeight} />
-        <HUD health={{current:3, totalHealth:3}} magic={{currentMagic:0, totalMagic:1}}/>
       </div>
     </div>
   );
