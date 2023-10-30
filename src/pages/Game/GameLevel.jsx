@@ -38,7 +38,7 @@ const cameraDimensions = {width: 15, height: 9};
 export const GameLevel = () => {
   //development tools
   const showGridOverlay = false;
-  const showCollisionBox = true;
+  const showCollisionBox = false;
   const scale = 2;
   const playerSize = TileSize * scale + (TileSize * scale / 2);
   const cellSize = TileSize * scale;

@@ -59,8 +59,55 @@ export const LevelBuilder = () => {
     const json = JSON.stringify(levelTiles);
     setOutputJson(json);
   }, [levelTiles]);
-
+  
   const Tiles = useMemo(() => {
+    let longPressTimer;
+    let longPressStart = {x: '', y: ''};
+    let longPressEnd = {x: '', y: ''};
+    
+    const handleMouseDown = (x, y) => {
+      setCurrent({x: x, y: y});
+      longPressTimer = setTimeout(() => {
+        longPressStart = {x: x, y: y};
+      }, 500);
+    };
+
+    const handleMouseUp = (x, y) => {
+      if(longPressStart.x !== '' && longPressStart.y !== '') {
+        longPressEnd = {x: x, y: y};
+
+        let diffX = longPressEnd.x - longPressStart.x;
+        let diffY = longPressEnd.y - longPressStart.y;
+
+        if (diffX !== 0) {
+          const newTileSet = [...levelTiles];
+          for (let i = 0; i <= Math.abs(diffX); i++) {
+            const newX = longPressStart.x + (diffX > 0 ? i : -i);
+            const startY = longPressStart.y;
+            const updateTileIndex = newTileSet.findIndex((tile) => tile.x === newX && tile.y === startY);
+            if (updateTileIndex !== -1) {
+              newTileSet[updateTileIndex] = { x: newX, y: longPressStart.y, id: tileSelected };
+            }
+          }
+          setLevelTiles(newTileSet);
+        }
+
+        if (diffY !== 0) {
+          const newTileSet = [...levelTiles];
+          for (let i = 0; i <= Math.abs(diffY); i++) {
+            const newY = longPressStart.y + (diffY > 0 ? i : -i);
+            const startX = longPressStart.x;
+            const updateTileIndex = newTileSet.findIndex((tile) => tile.y === newY && tile.x === startX);
+            if (updateTileIndex !== -1) {
+              newTileSet[updateTileIndex] = { x: longPressStart.x, y: newY, id: tileSelected };
+            }
+          }
+          setLevelTiles(newTileSet);
+        }
+      }
+      clearTimeout(longPressTimer);
+    };
+
     return levelTiles.map((tile, i) => {
       const key = `${tile.x}-${tile.y}`;
       const tileDetail = levelDetails.dungeonTileKey.find(tileKey => tileKey.id === tile.id);
@@ -70,17 +117,19 @@ export const LevelBuilder = () => {
           style={{
             backgroundImage: tileDetail && `url(${dungeonTilesSheet})`,
             backgroundPosition: tileDetail && `-${tileDetail.x / pixelsPerTile * 100}% -${tileDetail.y / pixelsPerTile * 100}%`,
-            backgroundSize: '500% 400%',
+            backgroundSize: '600% 400%',
             height: `${pixelsPerTile}px`,
             width: `${pixelsPerTile}px`,
             transform: `scale(${level.zoomSize})`,
           }}
           onClick={() => {handleTileClick(tile.x, tile.y)}}
+          onMouseUp={() => handleMouseUp(tile.x, tile.y)}
+          onMouseDown={(e) => handleMouseDown(tile.x, tile.y)}
         >
         </div>
       )
     })
-  }, [levelTiles, handleTileClick, level]);
+  }, [levelTiles, handleTileClick, level.zoomSize, tileSelected]);
 
   const handleTileButtonClick = (id) => {
     if(id === tileSelected) {
@@ -89,10 +138,6 @@ export const LevelBuilder = () => {
     }
     setTileSelected(id);
   };
-
-  useEffect(() => {
-    console.log('levelTiles', levelTiles);
-  }, [levelTiles]);
 
   return (
     <div className="admin">
@@ -137,6 +182,7 @@ export const LevelBuilder = () => {
           </div>
           <button onClick={generateMap}>Generate Map</button>
           <button onClick={generateJson}>Save Level [Output Json]</button>
+          <button onClick={() => {console.log("load level - json")}}>Load Level [Input Json]</button>
         </section>
 
         <section className="admin__map--preview">
@@ -149,9 +195,10 @@ export const LevelBuilder = () => {
                 onClick={() => handleTileButtonClick('reset')}>
                   <div style={{border: '3px solid #fff', height: '26px', width: '26px'}}></div>
                   clear cell
-                </button>
+              </button>
               {levelDetails.dungeonTileKey.map((tile, i) => {
                 return (
+                  tile.detail &&
                   <button 
                     key={i} 
                     className={tile.id === tileSelected ? "current-image-button" : "image-button"}
@@ -173,7 +220,7 @@ export const LevelBuilder = () => {
           <div className="panel">
             <h3>Map: </h3>
             <div>Selected: {`[x:${current.x}, y:${current.y}]`}</div>
-            <div style={{
+            <div id="map" style={{
               margin: '30px', 
               height: `${level.zoomSize * pixelsPerTile * level.y}px`,
               width: `${level.zoomSize * pixelsPerTile * level.x}px`,

@@ -119,6 +119,8 @@
     display: grid;
     grid-template-columns: 350px 1fr;
     grid-gap: 10px;
+
+    height: calc(100vh - 300px);
   }
 }
 
