@@ -51,11 +51,13 @@ export const GameLevel = () => {
 
   let collisionObjects = [];
 
-  let playerPosition = { x: 1 * cellSize, y: 3 * cellSize };
+  let playerPosition = { x: -0.25 * cellSize, y: 3.5 * cellSize };
+  let playerFacing = true; //true == flipImage || facing right
   const playerSpeed = 2.5;
 
   const [playerHealth, setPlayerHealth] = useState({ total: 3, current: 3 });
   const [playerMagic, setPlayerMagic] = useState({ total: 1, current: 1 });
+  const [playerIsDamaged, setPlayerIsDamaged] = useState(false);
 
   const player = useMemo(() => {
     return {
@@ -101,13 +103,26 @@ export const GameLevel = () => {
   const moveAnimationSpeed = 125; // Adjust this value for animation speed, HIgher is slower
   let lastMoveAnimationFrameTime = 0;
 
+  //damaged animation variables
+  let damagedAnimationFrame = 0;
+  const damagedAnimationSpeed = 100; // Adjust this value for animation speed, HIgher is slower
+  let lastDamagedAnimationFrameTime = 0;
+
   const { renderTorch } = useEnvironmentObject(cellSize, TileSize);
 
-  const mobs = [];
-  const ghoul = useMob(cellSize, TileSize, playerSize, [{x: 1, y: 0.5}, {x: 8.75, y: 0.5}, {x: 8, y: 6.5}, {x: 1.5, y: 6.5}]);
-  mobs.push(ghoul);
-  // const ghoul2 = useMob(cellSize, TileSize, playerSize, [{x: 11, y: 1}, {x: 11.5, y: 8.25}, {x: 14.75, y: 8}, {x: 14.25, y: 1.75}]);
+  // const mobs = [];
+  // const ghoul = useMob("ghoul1", cellSize, TileSize, playerSize, [{x: 1, y: 0.5}, {x: 8.75, y: 0.5}, {x: 8, y: 6.5}, {x: 1.5, y: 6.5}]);
+  // mobs.push(ghoul);
+  // const ghoul2 = useMob("ghoul2", cellSize, TileSize, playerSize, [{x: 11, y: 1}, {x: 11.5, y: 8.25}, {x: 14.75, y: 8}, {x: 14.25, y: 1.75}]);
   // mobs.push(ghoul2);
+  // const ghoul3 = useMob("ghoul3", cellSize, TileSize, playerSize, 
+
+  const mobsData = [
+    { name: "ghoul1", waypoints: [{x: 1, y: 0.5}, {x: 8.75, y: 0.5}, {x: 8, y: 6.5}, {x: 1.5, y: 6.5}] },
+    { name: "ghoul2", waypoints: [{x: 11, y: 1}, {x: 11.5, y: 8.25}, {x: 14.75, y: 8}, {x: 14.25, y: 1.75}] },
+    { name: "ghoul3", waypoints: [{x: 1, y: 9}, {x: 8, y: 9}] }
+  ];
+  const mobs = useMob(cellSize, TileSize, playerSize, mobsData);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -124,7 +139,7 @@ export const GameLevel = () => {
     dungeonTiles.src = dungeonTilesSheet;
     
     const startGame = () => {  
-      let flipImage = false;
+      let flipImage = playerFacing;
 
       const gameLoop = (timestamp) => {
         updateCamera(cellSize);
@@ -144,11 +159,8 @@ export const GameLevel = () => {
         renderTorch(ctx, timestamp, 7, 6);
 
         //render mobs 
-        ghoul.moveMob();
-        ghoul.renderGhoul(ctx, timestamp, showCollisionBox);
-
-        // ghoul2.moveMob();
-        // ghoul2.renderGhoul(ctx, timestamp, showCollisionBox);
+        mobs.render(ctx, timestamp, showCollisionBox);
+        mobs.move();
 
         //render player
         renderPlayer(timestamp, ctx, flipImage, playerImage);
@@ -194,7 +206,7 @@ export const GameLevel = () => {
             );
           });
 
-          if (!isCollision) {
+          if (!isCollision && !player.isHit) {
             playerPosition.x = newPlayerX;
             playerPosition.y = newPlayerY;
             setDisplay((prevState) => ({...prevState, x: playerPosition.x, y: playerPosition.y}));
@@ -227,23 +239,22 @@ export const GameLevel = () => {
 
     const checkCollisions = (playerCollisionBox) => {
       // Loop through each mob and check for collision with the player.
-      mobs.forEach((mob) => {
-        //console.log('mob:x', mob.mob.position.x * cellSize + mob.mob.collisionBox.x, 'y', mob.mob.position.y * cellSize + mob.mob.collisionBox.y);
-        //console.log('player:x', playerCollisionBox.x, 'y', playerCollisionBox.y);
+      let isPlayerCollidingWithMob = mobs.mobs.some((mob) => {
         if (
-          playerCollisionBox.x + camera.x < mob.mob.position.x * cellSize + mob.mob.collisionBox.x + mob.mob.collisionBox.width &&
-          playerCollisionBox.x + playerCollisionBox.width + camera.x > mob.mob.position.x * cellSize + mob.mob.collisionBox.x &&
-          playerCollisionBox.y + camera.y < mob.mob.position.y * cellSize + mob.mob.collisionBox.y + mob.mob.collisionBox.height &&
-          playerCollisionBox.y + playerCollisionBox.height + camera.y > mob.mob.position.y * cellSize + mob.mob.collisionBox.y
+          playerCollisionBox.x + camera.x < mob.position.x * cellSize + mob.collisionBox.x + mob.collisionBox.width &&
+          playerCollisionBox.x + playerCollisionBox.width + camera.x > mob.position.x * cellSize + mob.collisionBox.x &&
+          playerCollisionBox.y + camera.y < mob.position.y * cellSize + mob.collisionBox.y + mob.collisionBox.height &&
+          playerCollisionBox.y + playerCollisionBox.height + camera.y > mob.position.y * cellSize + mob.collisionBox.y
         ) {
           // Collision detected with this mob. You can handle it here (e.g., reduce player health).
-          console.log('collision detected with mob!!!');
-          player.isHit = true;
-          if(player.isHit){
-            setPlayerHealth((prevState) => ({...prevState, current: prevState.current - 1}));
-          };
+          return true;
+        }
+        else {
+          return false;
         }
       });
+      player.isHit = isPlayerCollidingWithMob;
+      setPlayerIsDamaged(isPlayerCollidingWithMob);
     };
 
     const cleanup = () => {
@@ -260,7 +271,7 @@ export const GameLevel = () => {
       const playerIsMoving = () => {
         setKeysPressed((prevState) => [...prevState, event.key]);
         player.isIdle = false;
-        player.isMoving = true;
+        player.isMoving = true; 
       };
       switch (event.key) {
         case 'ArrowLeft':
@@ -350,6 +361,12 @@ export const GameLevel = () => {
     setDisplay((prevState) => ({...prevState, camera: camera}));
   };
 
+  useEffect(() => {
+    if(playerIsDamaged) {
+      setPlayerHealth((prevState) => ({...prevState, current: prevState.current - 1}));
+    }
+  }, [playerIsDamaged]);
+
   const renderPlayer = (timestamp, ctx, flipImage, playerImage) => {
     let spriteSheetPosition = {x: 0, y: 0};
     const idleAnimationFrameTotal = 7;
@@ -376,6 +393,19 @@ export const GameLevel = () => {
       }
 
       spriteSheetPosition = {x: moveAnimationFrame * TileSize, y: 64};
+    };
+
+    const damagedAnimationFrameTotal = 4;
+    if(player.isHit){
+      const deltaTime = timestamp - lastDamagedAnimationFrameTime;
+
+      if (deltaTime >= damagedAnimationSpeed) {
+        // Update the animation frame
+        damagedAnimationFrame = (damagedAnimationFrame + 1) % damagedAnimationFrameTotal; 
+        lastDamagedAnimationFrameTime = timestamp;
+      }
+
+      spriteSheetPosition = {x: damagedAnimationFrame * TileSize, y: 96};
     };
 
     ctx.translate(playerPosition.x + playerSize / 2, playerPosition.y + playerSize / 2);
