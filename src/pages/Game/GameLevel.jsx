@@ -1,10 +1,12 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import './GameLevel.scss';
 
 import level from "../../assets/levelOne.json";
 import dungeonTilesSheet from "../../assets/images/DungeonTiles.png";
 import playerMasterSheet from "../../assets/images/character-master.png"
 
+import { useControls } from '../../hooks/useControls';
+import { usePlayer } from '../../hooks/usePlayer';
 import { useEnvironmentObject } from "../../hooks/useEnvironmentObject";
 import { useMob } from "../../hooks/useMobs";
 
@@ -39,7 +41,16 @@ export const GameLevel = () => {
   //development tools
   const showGridOverlay = false;
   const showCollisionBox = false;
-  const scale = 2;
+  
+  //user input controls
+  const { leftKeyPressed, rightKeyPressed, upKeyPressed, downKeyPressed, keysPressed } = useControls();
+  const controlsRef = useRef({ leftKeyPressed, rightKeyPressed, upKeyPressed, downKeyPressed, keysPressed });
+  useEffect(() => {
+    controlsRef.current = { leftKeyPressed, rightKeyPressed, upKeyPressed, downKeyPressed, keysPressed };
+  }, [leftKeyPressed, rightKeyPressed, upKeyPressed, downKeyPressed, keysPressed]);
+
+  //game display and level rendering
+  const scale = 2; //TODO: needs automated based on screen size
   const playerSize = TileSize * scale + (TileSize * scale / 2);
   const cellSize = TileSize * scale;
   const gridWidth = cameraDimensions.width * cellSize;
@@ -47,36 +58,29 @@ export const GameLevel = () => {
   const levelWidth = level.level.width * cellSize;
   const levelHeight = level.level.height * cellSize;
 
-  const [keysPressed, setKeysPressed] = useState([]);
-
   let collisionObjects = [];
+
+  //player variables
+  //TODO: continue porting logic to usePlayer hook
+  let initialPosition = { x: -0.25 * cellSize, y: 3.5 * cellSize };
+  const { 
+    player, 
+    actions, 
+    updatePlayerHealth, 
+    updatePlayerPosition,
+    updateActions,
+  } = usePlayer(initialPosition, playerSize, cellSize, TileSize);
+  const playerRef = useRef({ player, actions });
+  useEffect(() => {
+    playerRef.current = { player, actions };
+  }, [player, actions]);
 
   let playerPosition = { x: -0.25 * cellSize, y: 3.5 * cellSize };
   let playerFacing = true; //true == flipImage || facing right
-  const playerSpeed = 2.5;
 
-  const [playerHealth, setPlayerHealth] = useState({ total: 3, current: 3 });
-  const [playerMagic, setPlayerMagic] = useState({ total: 1, current: 1 });
   const [playerIsDamaged, setPlayerIsDamaged] = useState(false);
 
-  const player = useMemo(() => {
-    return {
-      isIdle: true,
-      isMoving: false,
-      isAttacking: false,
-      isDead: false,
-      isHit: false,
-      isJumping: false,
-      isFalling: false,
-      isCrouching: false,
-      isClimbing: false,
-      isDashing: false,
-      isDodging: false,
-      isBlocking: false,
-      isStunned: false,
-    };
-  }, []);
-
+  //camera
   const camera = { 
     x: 0, 
     y: 0,
@@ -109,13 +113,6 @@ export const GameLevel = () => {
   let lastDamagedAnimationFrameTime = 0;
 
   const { renderTorch } = useEnvironmentObject(cellSize, TileSize);
-
-  // const mobs = [];
-  // const ghoul = useMob("ghoul1", cellSize, TileSize, playerSize, [{x: 1, y: 0.5}, {x: 8.75, y: 0.5}, {x: 8, y: 6.5}, {x: 1.5, y: 6.5}]);
-  // mobs.push(ghoul);
-  // const ghoul2 = useMob("ghoul2", cellSize, TileSize, playerSize, [{x: 11, y: 1}, {x: 11.5, y: 8.25}, {x: 14.75, y: 8}, {x: 14.25, y: 1.75}]);
-  // mobs.push(ghoul2);
-  // const ghoul3 = useMob("ghoul3", cellSize, TileSize, playerSize, 
 
   const mobsData = [
     { name: "ghoul1", waypoints: [{x: 1, y: 0.5}, {x: 8.75, y: 0.5}, {x: 8, y: 6.5}, {x: 1.5, y: 6.5}] },
@@ -168,14 +165,14 @@ export const GameLevel = () => {
         ctx.restore();
 
         //draw player collider box
-        const movementCollisionBox = {
+        const movementDetection = {
           x: playerPosition.x + (playerSize / 3) - camera.x,
           y: playerPosition.y + (playerSize / 2) - camera.y,
           width: playerSize * 0.3,
-          height: cellSize * 0.65,
+          height: playerSize * 0.45,
         };
 
-        const hitBox = {
+        const damageDetection = {
           x: playerPosition.x + (playerSize * 0.3) - camera.x,
           y: playerPosition.y + (playerSize * 0.2) - camera.y,
           width: playerSize * 0.4,
@@ -183,53 +180,57 @@ export const GameLevel = () => {
         };
 
         if(showCollisionBox) {
-          //movement
-          ctx.strokeStyle = "fuchsia"; 
-          ctx.lineWidth = 2; 
-          ctx.strokeRect(movementCollisionBox.x, movementCollisionBox.y, movementCollisionBox.width, movementCollisionBox.height);
           //hit
           ctx.strokeStyle = "aqua"; 
           ctx.lineWidth = 2; 
-          ctx.strokeRect(hitBox.x, hitBox.y, hitBox.width, hitBox.height);
+          ctx.strokeRect(damageDetection.x, damageDetection.y, damageDetection.width, damageDetection.height);
+          //movement detection
+          ctx.strokeStyle = "fuchsia";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(movementDetection.x, movementDetection.y, movementDetection.width, movementDetection.height);
         }
 
-        const movePlayer = (dx, dy) => {
+        const movePlayer = (dx, dy, collisionObjects, camera) => {
           const newPlayerX = playerPosition.x + dx;
           const newPlayerY = playerPosition.y + dy;
 
           const isCollision = collisionObjects.some((obj) => {
             return (
-              movementCollisionBox.x + dx + camera.x < obj.x + obj.width &&
-              movementCollisionBox.x + dx + movementCollisionBox.width + camera.x > obj.x &&
-              movementCollisionBox.y + dy + camera.y < obj.y + obj.height &&
-              movementCollisionBox.y + dy + movementCollisionBox.height + camera.y > obj.y
+              movementDetection.x + dx + camera.x < obj.x + obj.width &&
+              movementDetection.x + dx + movementDetection.width + camera.x > obj.x &&
+              movementDetection.y + dy + camera.y < obj.y + obj.height &&
+              movementDetection.y + dy + movementDetection.height + camera.y > obj.y
             );
           });
 
-          if (!isCollision && !player.isHit) {
+          // console.log("x:", playerPosition.x, playerRef.current.player.position.x);
+          // console.log("y:", playerPosition.y, playerRef.current.player.position.y);
+
+          if (!isCollision && !playerRef.current.actions.isHit) {
             playerPosition.x = newPlayerX;
             playerPosition.y = newPlayerY;
+            updatePlayerPosition(newPlayerX, newPlayerY);
             setDisplay((prevState) => ({...prevState, x: playerPosition.x, y: playerPosition.y}));
           }
         };
 
         //update player position
-        if (leftKeyPressed) {
-          movePlayer(-playerSpeed, 0);
+        if (controlsRef.current.leftKeyPressed) {
+          movePlayer(-player.speed, 0, collisionObjects, camera);
           flipImage = false;
         }
-        if (rightKeyPressed) {
-          movePlayer(playerSpeed, 0);
+        if (controlsRef.current.rightKeyPressed) {
+          movePlayer(player.speed, 0, collisionObjects, camera);
           flipImage = true;
         }
-        if (upKeyPressed) {
-          movePlayer(0, -playerSpeed);
+        if (controlsRef.current.upKeyPressed) {
+          movePlayer(0, -player.speed, collisionObjects, camera);
         }
-        if (downKeyPressed) {
-          movePlayer(0, playerSpeed);
+        if (controlsRef.current.downKeyPressed) {
+          movePlayer(0, player.speed, collisionObjects, camera);
         }
 
-        checkCollisions(hitBox);
+        checkCollisions(damageDetection);
         
         requestAnimationFrame(gameLoop);
       };
@@ -238,7 +239,7 @@ export const GameLevel = () => {
     };
 
     const checkCollisions = (playerCollisionBox) => {
-      // Loop through each mob and check for collision with the player.
+      // Loop through each mob and check for collision with the playerActions.
       let isPlayerCollidingWithMob = mobs.mobs.some((mob) => {
         if (
           playerCollisionBox.x + camera.x < mob.position.x * cellSize + mob.collisionBox.x + mob.collisionBox.width &&
@@ -253,78 +254,11 @@ export const GameLevel = () => {
           return false;
         }
       });
-      player.isHit = isPlayerCollidingWithMob;
+      playerRef.current.actions.isHit = isPlayerCollidingWithMob;
       setPlayerIsDamaged(isPlayerCollidingWithMob);
     };
 
-    const cleanup = () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-
-    let leftKeyPressed = false;
-    let rightKeyPressed = false;
-    let upKeyPressed = false;
-    let downKeyPressed = false;
-
-    const handleKeyDown = (event) => {
-      const playerIsMoving = () => {
-        setKeysPressed((prevState) => [...prevState, event.key]);
-        player.isIdle = false;
-        player.isMoving = true; 
-      };
-      switch (event.key) {
-        case 'ArrowLeft':
-        case 'a':
-          leftKeyPressed = true;
-          playerIsMoving();
-          break;
-        case 'ArrowRight':
-        case 'd':
-          rightKeyPressed = true;
-          playerIsMoving();
-          break;
-        case 'ArrowUp':
-        case 'w':
-          upKeyPressed = true;
-          playerIsMoving();
-          break;
-        case 'ArrowDown':
-        case 's':
-          downKeyPressed = true;
-          playerIsMoving();
-          break;
-        default:
-          break;
-      }
-    };
-
-    const handleKeyUp = (event) => {
-      setKeysPressed((prevState) => prevState.filter((x) => x !== event.key));
-      switch (event.key) {
-        case 'ArrowLeft':
-        case 'a':
-          leftKeyPressed = false;
-          break;
-        case 'ArrowRight':
-        case 'd':
-          rightKeyPressed = false;
-          break;
-        case 'ArrowUp':
-        case 'w':
-          upKeyPressed = false;
-          break;
-        case 'ArrowDown':
-        case 's':
-          downKeyPressed = false;
-          break;
-        default:
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    const cleanup = () => {};
 
     startGame();
 
@@ -334,13 +268,14 @@ export const GameLevel = () => {
 
   useEffect(() => {
     if(keysPressed.length === 0) {
-      player.isIdle = true;
-      player.isMoving = false;
+      updateActions('isIdle', true);
+      updateActions('isMoving', false);
     } else {
-      player.isIdle = false;
-      player.isMoving = true;
+      updateActions('isIdle', false);
+      updateActions('isMoving', true);
     }
-  }, [keysPressed, player]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keysPressed]);
 
   const updateCamera = (cellSize) => {
     const position = {
@@ -363,14 +298,15 @@ export const GameLevel = () => {
 
   useEffect(() => {
     if(playerIsDamaged) {
-      setPlayerHealth((prevState) => ({...prevState, current: prevState.current - 1}));
+      updatePlayerHealth(1);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playerIsDamaged]);
 
   const renderPlayer = (timestamp, ctx, flipImage, playerImage) => {
     let spriteSheetPosition = {x: 0, y: 0};
     const idleAnimationFrameTotal = 7;
-    if(player.isIdle){
+    if(playerRef.current.actions.isIdle){
       const deltaTime = timestamp - lastIdleAnimationFrameTime;
 
       if (deltaTime >= idleAnimationSpeed) {
@@ -383,7 +319,7 @@ export const GameLevel = () => {
     };
 
     const moveAnimationFrameTotal = 6;
-    if(player.isMoving){
+    if(playerRef.current.actions.isMoving){
       const deltaTime = timestamp - lastMoveAnimationFrameTime;
 
       if (deltaTime >= moveAnimationSpeed) {
@@ -396,7 +332,7 @@ export const GameLevel = () => {
     };
 
     const damagedAnimationFrameTotal = 4;
-    if(player.isHit){
+    if(playerRef.current.actions.isHit){
       const deltaTime = timestamp - lastDamagedAnimationFrameTime;
 
       if (deltaTime >= damagedAnimationSpeed) {
@@ -498,7 +434,7 @@ export const GameLevel = () => {
         {/* <div>{`Width:${gridWidth} Height:${gridHeight}`}</div> */}
       </div>
       <div className="hud">
-        <HUD health={playerHealth} magic={playerMagic}/>
+        <HUD health={player.health} magic={player.magic}/>
       </div>
       <div className="level" style={{width: gridWidth, height: gridHeight}}>
         <canvas className="gameWindow" ref={canvasRef} width={gridWidth} height={gridHeight} />
