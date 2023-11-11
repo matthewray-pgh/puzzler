@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types';
 import ghoulMaster from '../assets/images/ghoul-master.png';
 
-export const useMob = (cellSize, tileSize, mobSize, mobsData) => {
+export const useMob = (cellSize, tileSize, mobSize, mobsData, isPaused) => {
+
   const mobs = mobsData.map(data => {
     const mob = {
       name: data.name,
@@ -11,7 +12,7 @@ export const useMob = (cellSize, tileSize, mobSize, mobsData) => {
         animation: {
           frameTotal: 6,
           frame: 0,
-          speed: 175,
+          speed: 200,
           lastFrameTime: 0
         },
       },
@@ -23,7 +24,7 @@ export const useMob = (cellSize, tileSize, mobSize, mobsData) => {
       },
       position: {x: data.waypoints[0].x, y: data.waypoints[0].y},
       waypoints: data.waypoints,
-      movementSpeed: 0.02,
+      movementSpeed: 0.015,
       flipImage: false,
     };
 
@@ -36,6 +37,7 @@ export const useMob = (cellSize, tileSize, mobSize, mobsData) => {
 
     mobs.forEach(mob => {
       const animationFramePositions = (timestamp) => {
+        if(isPaused) return {x: 0, y: 0};
         const deltaTime = timestamp - mob.idle.animation.lastFrameTime;
         if (deltaTime >= mob.idle.animation.speed) {
           mob.idle.animation.frame = (mob.idle.animation.frame + 1) % mob.idle.animation.frameTotal;
@@ -44,7 +46,7 @@ export const useMob = (cellSize, tileSize, mobSize, mobsData) => {
         return {x: mob.idle.animation.frame * tileSize, y: 32};
       };
 
-      const {x, y} = animationFramePositions(timestamp);
+      let {x, y} = animationFramePositions(timestamp);
 
       if(mob.flipImage){
         ctx.save();
@@ -90,6 +92,7 @@ export const useMob = (cellSize, tileSize, mobSize, mobsData) => {
   }
 
   const move = () => {
+    if(isPaused) return;
     mobs.forEach(mob => {
       mob.flipImage = false;
 

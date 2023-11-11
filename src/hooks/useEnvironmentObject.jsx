@@ -1,6 +1,6 @@
  import wallTorchSpriteSheet from "../assets/images/torch-Sheet.png";
 
- export const useEnvironmentObject = (cellSize, tileSize) => {
+ export const useEnvironmentObject = (cellSize, tileSize, isPaused) => {
 
   const torch = {
     sprite: wallTorchSpriteSheet,
@@ -17,6 +17,7 @@
     wallTorch.src = torch.sprite;
 
     const renderObjects = (timestamp) => {
+      if(isPaused) return {x: 0, y: 0};
       const deltaTime = timestamp - torch.animation.lastFrameTime;
       if (deltaTime >= torch.animation.speed) {
         torch.animation.frame = (torch.animation.frame + 1) % torch.animation.frameTotal;
