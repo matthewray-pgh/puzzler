@@ -25,13 +25,13 @@
     }
   }
 
-  label {
+  &__label {
     display: block;
-    margin-bottom: 5px;
+    margin: 10px 0;
     font-size: 24px;
   }
 
-  input {
+  &__input {
     padding: 10px;
     width: calc(100% - 20px);
 
@@ -61,7 +61,8 @@
     font-weight: 600;
   }
 
-  button {
+  &__button {
+    min-height: 50px;
     border: none;
     border-radius: 4px;
     background-color: $button-color;
@@ -110,6 +111,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr 1fr 1fr;
       grid-gap: 10px;
+      align-items: end;
 
       margin-bottom: 20px;
     }
@@ -121,6 +123,17 @@
     grid-gap: 10px;
 
     height: calc(100vh - 300px);
+  }
+
+  &__upload-form {
+    width: 100%;
+    margin-bottom: 20px;
+
+    &--side-by-side {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-gap: 10px;
+    }
   }
 }
 
@@ -138,3 +151,80 @@
   }
 }
 
+.hide {
+  display: none;
+}
+
+.modal {
+  width: 100%;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  color: $font-primary;
+  background-color: $background;
+  font-family: $font-family;
+  background-color: rgba(0, 0, 0, 0.5);
+
+  &__content {
+    width: 500px;
+    background-color: $background;
+    border: 2px solid $border-color;
+    border-radius: 4px;
+    padding: 20px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+
+    &--title {
+      margin-bottom: 10px;
+      font-size: 30px;
+    }
+
+    &--message {
+      margin-bottom: 10px;
+      padding: 10px;
+      font-size: 24px;
+    }
+
+    &--button-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-gap: 10px;
+      width: 100%;
+    }
+  }
+
+  &__divider-text {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+    margin: 10px 0;
+
+    font-size: 30px;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid $border-color;
+    }
+
+    &::before {
+      margin-right: 0.25em;
+    }
+
+    &::after {
+      margin-left: 0.25em;
+    }
+  }
+}
