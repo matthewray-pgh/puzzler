@@ -56,52 +56,38 @@ export const usePlayer = (position, size, cellSize, tileSize) => {
     });
   };
 
-  //idle animation variables
-  let idleAnimationFrame = 0;
-  const idleAnimationSpeed = 200; // Adjust this value for animation speed, Higher is slower
-  let lastIdleAnimationFrameTime = 0;
-
-  //move animation variables
-  let moveAnimationFrame = 0;
-  const moveAnimationSpeed = 125; // Adjust this value for animation speed, HIgher is slower
-  let lastMoveAnimationFrameTime = 0;
-
-  //damaged animation variables
-  let damagedAnimationFrame = 0;
-  const damagedAnimationSpeed = 100; // Adjust this value for animation speed, HIgher is slower
-  let lastDamagedAnimationFrameTime = 0;
-
   const render = (timestamp, ctx, flipImage, playerImage) => {
     let spriteSheetPosition = {x: 0, y: 0};
 
-    const idleAnimationFrameTotal = 7;
+    const getSpriteAnimationPosition = (
+      lastAnimationFrameTime = 0, 
+      animationSpeed = 150, 
+      animationFrame = 0, 
+      animationFrameTotal, 
+      yTilePosition
+    ) => {
+      const deltaTime = timestamp - lastAnimationFrameTime;
+      if (deltaTime >= animationSpeed) {
+        animationFrame = (animationFrame + 1) % animationFrameTotal;
+        lastAnimationFrameTime = timestamp;
+      }
+      return {x: animationFrame * tileSize, y: yTilePosition};
+    };
+
     if(actions.isIdle){
-      const deltaTime = timestamp - lastIdleAnimationFrameTime;
-      if (deltaTime >= idleAnimationSpeed) {
-        idleAnimationFrame = (idleAnimationFrame + 1) % idleAnimationFrameTotal;
-        lastIdleAnimationFrameTime = timestamp;
-      }
-      spriteSheetPosition = {x: idleAnimationFrame * tileSize, y: 32};
+      spriteSheetPosition = getSpriteAnimationPosition(0, 200, 0, 7, 32);
     };
 
-    const moveAnimationFrameTotal = 6;
     if(actions.isMoving){
-      const deltaTime = timestamp - lastMoveAnimationFrameTime;
-      if (deltaTime >= moveAnimationSpeed) {
-        moveAnimationFrame = (moveAnimationFrame + 1) % moveAnimationFrameTotal; 
-        lastMoveAnimationFrameTime = timestamp;
-      }
-      spriteSheetPosition = {x: moveAnimationFrame * tileSize, y: 64};
+      spriteSheetPosition = getSpriteAnimationPosition(0, 125, 0, 6, 64);
     };
 
-    const damagedAnimationFrameTotal = 4;
     if(actions.isDamaged){
-      const deltaTime = timestamp - lastDamagedAnimationFrameTime;
-      if (deltaTime >= damagedAnimationSpeed) {
-        damagedAnimationFrame = (damagedAnimationFrame + 1) % damagedAnimationFrameTotal; 
-        lastDamagedAnimationFrameTime = timestamp;
-      }
-      spriteSheetPosition = {x: damagedAnimationFrame * tileSize, y: 96};
+      spriteSheetPosition = getSpriteAnimationPosition(0, 100, 0, 4, 96);
+    };
+
+    if(actions.isAttacking){
+      spriteSheetPosition = getSpriteAnimationPosition(0, 100, 0, 3, 128)
     };
 
     ctx.translate(player.position.x + size / 2, player.position.y + size / 2);
@@ -195,10 +181,6 @@ export const usePlayer = (position, size, cellSize, tileSize) => {
     });
     updateActions('isDamaged', isPlayerCollidingWithMob);
   };
-
-  // useEffect(() => {
-  //   console.log('usePlayer - useEffect - player.position', player.position);
-  // }, [player.position]);
 
   return {
     player,

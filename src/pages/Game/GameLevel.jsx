@@ -37,17 +37,22 @@ const cameraDimensions = {width: 15, height: 9};
 // crate
 // pottery
 
+//add dash / slide to player - does minor damage to enemies - can be used to break pots and barrels
+
 export const GameLevel = () => {
   //development tools
   const showGridOverlay = false;
   const showCollisionBox = false;
+
+  //canvas
+  const canvasRef = useRef(null);
   
   //user input controls
-  const { leftKeyPressed, rightKeyPressed, upKeyPressed, downKeyPressed, keysPressed } = useControls();
-  const controlsRef = useRef({ leftKeyPressed, rightKeyPressed, upKeyPressed, downKeyPressed, keysPressed });
+  const { leftKeyPressed, rightKeyPressed, upKeyPressed, downKeyPressed, keysPressed, mouseClicked } = useControls({canvasRef});
+  const controlsRef = useRef({ leftKeyPressed, rightKeyPressed, upKeyPressed, downKeyPressed, keysPressed, mouseClicked });
   useEffect(() => {
-    controlsRef.current = { leftKeyPressed, rightKeyPressed, upKeyPressed, downKeyPressed, keysPressed };
-  }, [leftKeyPressed, rightKeyPressed, upKeyPressed, downKeyPressed, keysPressed]);
+    controlsRef.current = { leftKeyPressed, rightKeyPressed, upKeyPressed, downKeyPressed, keysPressed, mouseClicked };
+  }, [leftKeyPressed, rightKeyPressed, upKeyPressed, downKeyPressed, keysPressed, mouseClicked]);
 
   //game display and level rendering
   const scale = 2; //TODO: needs automated based on screen size
@@ -95,8 +100,6 @@ export const GameLevel = () => {
     camera: camera
   });
 
-  const canvasRef = useRef(null);
-
   //idle animation variables
   let idleAnimationFrame = 0;
   const idleAnimationSpeed = 200; // Adjust this value for animation speed, Higher is slower
@@ -111,6 +114,11 @@ export const GameLevel = () => {
   let damagedAnimationFrame = 0;
   const damagedAnimationSpeed = 100; // Adjust this value for animation speed, HIgher is slower
   let lastDamagedAnimationFrameTime = 0;
+
+  //attack animation variables
+  let attackAnimationFrame = 0;
+  const attakedAnimationSpeed = 200; // Adjust this value for animation speed, HIgher is slower
+  let lastAttackedAnimationFrameTime = 0;
 
   const { renderTorch } = useEnvironmentObject(cellSize, TileSize);
 
@@ -203,9 +211,6 @@ export const GameLevel = () => {
             );
           });
 
-          // console.log("x:", playerPosition.x, playerRef.current.player.position.x);
-          // console.log("y:", playerPosition.y, playerRef.current.player.position.y);
-
           if (!isCollision && !playerRef.current.actions.isHit) {
             playerPosition.x = newPlayerX;
             playerPosition.y = newPlayerY;
@@ -274,8 +279,15 @@ export const GameLevel = () => {
       updateActions('isIdle', false);
       updateActions('isMoving', true);
     }
+
+    if(mouseClicked){
+      updateActions('isAttacking', true);
+      updateActions('isMoving', false);
+      updateActions('isIdle', false);
+    } 
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [keysPressed]);
+  }, [keysPressed, mouseClicked]);
 
   const updateCamera = (cellSize) => {
     const position = {
@@ -342,6 +354,22 @@ export const GameLevel = () => {
       }
 
       spriteSheetPosition = {x: damagedAnimationFrame * TileSize, y: 96};
+    };
+
+    const attackAnimationFrameTotal = 3;
+    if(playerRef.current.actions.isAttacking){
+      const deltaTime = timestamp - lastAttackedAnimationFrameTime;
+
+      if (deltaTime >= attakedAnimationSpeed) {
+        // Update the animation frame
+        attackAnimationFrame = (attackAnimationFrame + 1) % attackAnimationFrameTotal; 
+        lastAttackedAnimationFrameTime = timestamp;
+        if(attackAnimationFrame === 0){
+          updateActions('isAttacking', false);
+        }
+      }
+
+      spriteSheetPosition = {x: attackAnimationFrame * TileSize, y: 128};
     };
 
     ctx.translate(playerPosition.x + playerSize / 2, playerPosition.y + playerSize / 2);
@@ -436,8 +464,12 @@ export const GameLevel = () => {
       <div className="hud">
         <HUD health={player.health} magic={player.magic}/>
       </div>
-      <div className="level" style={{width: gridWidth, height: gridHeight}}>
+      <div className="level" style={{width: gridWidth}}>
         <canvas className="gameWindow" ref={canvasRef} width={gridWidth} height={gridHeight} />
+      </div>
+      <div className="gameStatusMessage">
+        START GAME
+        {player.health <= 0 && <span>GAME OVER</span>}
       </div>
     </div>
   );
