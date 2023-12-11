@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 
-export const useControls = () => {
+export const useControls = ({ canvasRef }) => {
   const [leftKeyPressed, setLeftKeyPressed] = useState(false);
   const [rightKeyPressed, setRightKeyPressed] = useState(false);
   const [upKeyPressed, setUpKeyPressed] = useState(false);
   const [downKeyPressed, setDownKeyPressed] = useState(false);
+  const [mouseClicked, setMouseClicked] = useState(false);
   const [keysPressed, setKeysPressed] = useState([]);
 
   const handleKeyDown = useCallback((event) => {
@@ -58,7 +59,23 @@ export const useControls = () => {
     }
   },[]);
 
+  const handleMouseDown = useCallback(() => {
+    setMouseClicked(true);
+    setUpKeyPressed(false);
+    setDownKeyPressed(false);
+    setLeftKeyPressed(false);
+    setRightKeyPressed(false);
+  },[]);
+
+  const handleMouseUp = useCallback(() => {
+    setMouseClicked(false);
+  },[]);
+
   useEffect(() => {
+    const canvas = canvasRef.current;
+    canvas.addEventListener("mouseup", handleMouseUp);
+    canvas.addEventListener("mousedown", handleMouseDown);
+
     const handleKeyDownEvent = (event) => handleKeyDown(event);
     const handleKeyUpEvent = (event) => handleKeyUp(event);
 
@@ -66,10 +83,13 @@ export const useControls = () => {
     window.addEventListener("keyup", handleKeyUpEvent);
 
     return () => {
+      canvas.removeEventListener("mouseup", handleMouseUp);
+      canvas.removeEventListener("mousedown", handleMouseDown);
+
       window.removeEventListener("keydown", handleKeyDownEvent);
       window.removeEventListener("keyup", handleKeyUpEvent);
     };
-  }, [handleKeyDown, handleKeyUp]);
+  }, [handleKeyDown, handleKeyUp, handleMouseDown, handleMouseUp, canvasRef]);
 
   return {
     leftKeyPressed,
@@ -77,5 +97,6 @@ export const useControls = () => {
     upKeyPressed,
     downKeyPressed,
     keysPressed,
+    mouseClicked,
   }
 }

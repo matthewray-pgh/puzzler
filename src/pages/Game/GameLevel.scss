@@ -51,7 +51,6 @@
 .level {
   background-color: $background;
   color: $font-primary;
-  min-height: 100vh;
 }
 
 .details {
@@ -69,4 +68,17 @@
 .gameWindow {
   background-color: transparent;
   border: 2px solid $border-color;
+}
+
+.gameStatusMessage {
+  display: flex;
+  align-content: center;
+  justify-content: center;
+  padding: 10px;
+
+  font-family: $font-press-start;
+  font-size: 50px;
+  font-weight: bold;
+  color: #24ada6;
+  -webkit-text-stroke: 0.1px white;
 }
