@@ -1,11 +1,11 @@
-import React, {useState, useCallback, useMemo, useEffect} from 'react';
+import React, {useState, useCallback, useMemo} from 'react';
 import { Link } from 'react-router-dom';
 
 import './LevelBuilder.scss';
 
 import levelDetails from "../../assets/levelOne.json";
 import dungeonTilesSheet from "../../assets/images/DungeonTiles.png";
-import { tileLayer } from "./LevelBuilder.js";
+import { tileLayer, tileState } from "./LevelBuilderConstants.js";
 
 const pixelsPerTile = 32;
 
@@ -23,7 +23,11 @@ export const LevelBuilder = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
 
   const tileLookUpById = useCallback((id) => {
-    return levelDetails.dungeonTileKey.find((x) => x.id === id);
+    let tile = levelDetails.dungeonTileKey.find((x) => x.id === id);
+    if(!tile) {
+      tile = levelDetails.doorwayKey.find((x) => x.id === id);
+    }
+    return tile;
   },[]);
 
   const tileLookUpByCoordinates = useCallback((x, y) => {
@@ -148,14 +152,17 @@ export const LevelBuilder = () => {
 
     return levelTiles.map((tile, i) => {
       const key = `${tile.x}-${tile.y}-${i}`;
-      const tileDetail = levelDetails.dungeonTileKey.find(tileKey => tileKey.id === tile.tileKey);
+      let tileDetail = levelDetails.dungeonTileKey.find(tileKey => tileKey.id === tile.tileKey);
+      if(!tileDetail) {
+        tileDetail = levelDetails.doorwayKey.find(tileKey => tileKey.id === tile.tileKey);
+      }
       return (
         <div 
           key={key} 
           style={{
             backgroundImage: tileDetail && `url(${dungeonTilesSheet})`,
             backgroundPosition: tileDetail && `-${tileDetail.x / pixelsPerTile * 100}% -${tileDetail.y / pixelsPerTile * 100}%`,
-            backgroundSize: '600% 400%',
+            backgroundSize: `${levelDetails.spriteSheetSize.x}% ${levelDetails.spriteSheetSize.y}%`,
             height: `${pixelsPerTile}px`,
             width: `${pixelsPerTile}px`,
             transform: `scale(${level.zoomSize})`,
@@ -183,6 +190,10 @@ export const LevelBuilder = () => {
 
   const collisionLayerTiles = useMemo(() => {
     return levelDetails.dungeonTileKey.filter((x) => x.layer === tileLayer.MAIN)
+  }, []);
+
+  const doorwayTiles = useMemo(() => {
+    return levelDetails.doorwayKey.filter((x) => x.state === tileState.STATIC)
   }, []);
 
   const resetMap = useCallback(() => {
@@ -278,7 +289,7 @@ export const LevelBuilder = () => {
                   clear cell
               </button>
 
-              <h3>Base Tiles</h3>
+              <h3>Floor</h3>
               <TileButtonList 
                 tileSpriteSheet={dungeonTilesSheet}
                 layerTiles={baseLayerTiles}
@@ -286,10 +297,18 @@ export const LevelBuilder = () => {
                 tileSelected={tileSelected}
               />
 
-              <h3>Main Tiles</h3>
+              <h3>Walls</h3>
               <TileButtonList 
                 tileSpriteSheet={dungeonTilesSheet}
                 layerTiles={collisionLayerTiles}
+                handleClick={handleTileButtonClick}
+                tileSelected={tileSelected}
+              />
+
+              <h3>Doorways</h3>
+              <TileButtonList
+                tileSpriteSheet={dungeonTilesSheet}
+                layerTiles={doorwayTiles}
                 handleClick={handleTileButtonClick}
                 tileSelected={tileSelected}
               />
