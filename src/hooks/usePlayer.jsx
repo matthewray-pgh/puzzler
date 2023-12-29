@@ -4,7 +4,7 @@ import { directions } from '../utils/enums';
 export const usePlayer = (position, size, cellSize, tileSize) => {
   
   const [player, setPlayer] = useState({
-    speed: 1.5,
+    speed: 2.5,
     direction: directions.RIGHT,
     facing: directions.RIGHT,
     health: { total: 5, current: 5 },

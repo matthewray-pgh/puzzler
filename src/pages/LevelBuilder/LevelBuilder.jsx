@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useMemo} from 'react';
+import React, {useState, useCallback, useMemo, useEffect} from 'react';
 import { Link } from 'react-router-dom';
 
 import './LevelBuilder.scss';
@@ -35,9 +35,10 @@ export const LevelBuilder = () => {
   },[levelTiles]);
 
   const baseLookUpByCoordinates = useCallback((x, y) => {
-    return baseMap.find((tiles) => tiles.x === x && tiles.y === y);
+    return baseMap.find((tiles) => tiles.x === x && tiles.y === y && tiles.layer === "base");
   }, [baseMap]);
 
+  // generates base map based on initial width and height
   const buildMap = (x, y) => {
     //check if levelTiles is empty
     let map = [];
@@ -90,16 +91,45 @@ export const LevelBuilder = () => {
   }, [levelTiles, level]);
 
   const generateJson = useCallback(() => {
+    // level type
+    const type = "dungeon.json";
+    // level details
+    const details = {
+      width: parseInt(level.x), 
+      height: parseInt(level.y)
+    };
+
+    //filter tiles with no tileKey
+    const filteredTiles = levelTiles.filter(obj => obj.tileKey !== undefined);
+    
     //generate base map
-    const base = levelTiles.map((tile) => {
-      const baseTile = baseLookUpByCoordinates(tile.x, tile.y);
-      return {x: tile.x, y: tile.y, id: baseTile.id === tile.id ? baseTile.id : tile.id};
+    const base = filteredTiles.map((tile) => {
+      let baseTile = tile;
+      if(tile.layer !== "base") {
+        baseTile = baseLookUpByCoordinates(tile.x, tile.y);
+      }
+      return {x: tile.x, y: tile.y, tileKey: baseTile.tileKey};
     });
+
     //generate collision map
-    const collision = levelTiles.filter((tile) => tile.layer === tileLayer.MAIN).map((tile) => { return {x: tile.x, y: tile.y, id: tile.id}});
-    const json = JSON.stringify({baseMap: base, collisionMap: collision});
-    setOutputJson(json);
-  }, [baseLookUpByCoordinates, levelTiles]);
+    const collision = filteredTiles.filter((tile) => tile.layer === tileLayer.MAIN).map((tile) => { 
+      return {x: tile.x, y: tile.y, tileKey: tile.tileKey}});
+    const json = {
+      mapType: type,
+      level: details, 
+      baseMap: base, 
+      collisionMap: collision
+    };
+
+    // create json file and download
+    const blob = new Blob([JSON.stringify(json)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'dungeon-map.json';
+    link.click();
+  }, [level, baseLookUpByCoordinates, levelTiles]);
   
   const Tiles = useMemo(() => {
     let longPressTimer;
@@ -233,8 +263,6 @@ export const LevelBuilder = () => {
       <Link to="/">Home</Link>
 
       <section className="admin__generate">
-        <h2>Generate Game Level</h2>
-
         <section className="admin__generate--form">
           <div>
             <label htmlFor="x" className="admin__label">Width [x]</label>
@@ -316,8 +344,7 @@ export const LevelBuilder = () => {
           </div>
 
           <div className="panel">
-            <h3>Map: </h3>
-            <div>Selected: {`[x:${current.x}, y:${current.y}]`}</div>
+            {/* <div>Selected: {`[x:${current.x}, y:${current.y}]`}</div> */}
             <div id="map" style={{
               margin: '30px', 
               height: `${level.zoomSize * pixelsPerTile * level.y}px`,

@@ -1,4 +1,5 @@
 {
+  "mapType": "dungeon.json",
   "cellSize": 32,
   "spriteSheetSize": {
     "x": 1200,
@@ -324,7 +325,7 @@
     { "x": 0, "y": 1, "tileKey": "b0" },
     { "x": 0, "y": 2, "tileKey": "c0" },
     { "x": 0, "y": 3, "tileKey": "b4" },
-    { "x": 0, "y": 5, "tileKey": "c4" },
+    { "x": 0, "y": 5, "tileKey": "c5" },
     { "x": 0, "y": 6, "tileKey": "b0" },
     { "x": 0, "y": 7, "tileKey": "b0" },
     { "x": 0, "y": 8, "tileKey": "d0" },
@@ -352,7 +353,7 @@
     { "x": 10, "y": 0, "tileKey": "a3" },
     { "x": 10, "y": 1, "tileKey": "c0" },
     { "x": 10, "y": 2, "tileKey": "b4" },
-    { "x": 10, "y": 6, "tileKey": "c4" },
+    { "x": 10, "y": 6, "tileKey": "c5" },
     { "x": 10, "y": 7, "tileKey": "b0" },
     { "x": 10, "y": 8, "tileKey": "d2" },
     { "x": 10, "y": 9, "tileKey": "c0"},
@@ -362,7 +363,7 @@
     { "x": 12, "y": 0, "tileKey": "a1" },
     { "x": 12, "y": 10, "tileKey": "a1" },
     { "x": 13, "y": 0, "tileKey": "a1" },
-    { "x": 13, "y": 3, "tileKey": "c4" },
+    { "x": 13, "y": 3, "tileKey": "c5" },
     { "x": 13, "y": 4, "tileKey": "c0" },
     { "x": 13, "y": 5, "tileKey": "b4" },
     { "x": 13, "y": 10, "tileKey": "a1" },
@@ -382,5 +383,16 @@
     { "x": 16, "y": 8, "tileKey": "b0" },
     { "x": 16, "y": 9, "tileKey": "b0" },
     { "x": 16, "y": 10, "tileKey": "d4" }
+  ],
+  "mobs": [
+    { "name": "ghoul1", "waypoints": [{"x": 1, "y": 0.5}, {"x": 8.75, "y": 0.5}, {"x": 8, "y": 6.5}, {"x": 1.5, "y": 6.5}] },
+    { "name": "ghoul2", "waypoints": [{"x": 11, "y": 1}, {"x": 11.5, "y": 8.25}, {"x": 14.75, "y": 8}, {"x": 14.25, "y": 1.75}] },
+    { "name": "ghoul3", "waypoints": [{"x": 1, "y": 9}, {"x": 8, "y": 9}] }
+  ],
+  "torches": [
+    {"x": 3, "y": 2},
+    {"x": 7, "y": 2},
+    {"x": 3, "y": 6},
+    {"x": 7, "y": 6}
   ]
 }
