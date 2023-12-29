@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import './GameLevel.scss';
 
-import level from "../../assets/levelOne.json";
+//import level from "../../assets/levelOne.json";
 import dungeonTilesSheet from "../../assets/images/DungeonTiles.png";
 import playerMasterSheet from "../../assets/images/character-master.png"
 
@@ -12,8 +13,7 @@ import { useMob } from "../../hooks/useMobs";
 
 import { HUD } from "../../components/HUD";
 
-const TileSize = level.cellSize;
-const cameraDimensions = {width: 15, height: 9};
+// image assets needed
 // grate
 // skull stone
 // spider web
@@ -23,9 +23,6 @@ const cameraDimensions = {width: 15, height: 9};
 // sliding spike wall / block
 // pressure plate
 // lever / switch
-
-// chest
-// door
 // stairs
 // dirty water
 // fire
@@ -37,9 +34,50 @@ const cameraDimensions = {width: 15, height: 9};
 // crate
 // pottery
 
-//add dash / slide to player - does minor damage to enemies - can be used to break pots and barrels
+//TO DO:
+// interaction pop up
+// -- open doors
+// add dash / slide to player - does minor damage to enemies - can be used to break pots and barrels
 
 export const GameLevel = () => {
+  //params from url
+  const { fileName } = useParams();
+  const [level, setLevel] = useState({
+    cellSize: 32,
+    spriteSheetSize: {
+      x: 1200,
+      y: 600
+    },
+    level: {
+      width: 10,
+      height: 10
+    },
+    dungeonTileKey: [],
+    doorway: [],
+    baseMap: [],
+    collisionMap: [],
+    mobs: [],
+    torches: []
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLevelData = async (fileName) => {
+      setIsLoading(true);
+      import(`../../assets/${fileName}.json`)
+        .then((data) => {
+          setLevel(data.default);
+          setIsLoading(false);
+        })
+        .catch((error) => {
+          console.error('Error loading levelDetails:', error);
+          setIsLoading(false);
+        });
+    };
+
+    fetchLevelData(fileName);
+  }, [fileName]);
+  
   //development tools
   const showGridOverlay = false;
   const showCollisionBox = false;
@@ -55,6 +93,8 @@ export const GameLevel = () => {
   }, [leftKeyPressed, rightKeyPressed, upKeyPressed, downKeyPressed, keysPressed, mouseClicked]);
 
   //game display and level rendering
+  const TileSize = level.cellSize;
+  const cameraDimensions = {width: 15, height: 9};
   const scale = 2; //TODO: needs automated based on screen size
   const playerSize = TileSize * scale + (TileSize * scale / 2);
   const cellSize = TileSize * scale;
@@ -102,7 +142,7 @@ export const GameLevel = () => {
 
   //idle animation variables
   let idleAnimationFrame = 0;
-  const idleAnimationSpeed = 200; // Adjust this value for animation speed, Higher is slower
+  const idleAnimationSpeed = 190; // Adjust this value for animation speed, Higher is slower
   let lastIdleAnimationFrameTime = 0;
 
   //move animation variables
@@ -117,16 +157,12 @@ export const GameLevel = () => {
 
   //attack animation variables
   let attackAnimationFrame = 0;
-  const attakedAnimationSpeed = 200; // Adjust this value for animation speed, HIgher is slower
+  const attakedAnimationSpeed = 150; // Adjust this value for animation speed, HIgher is slower
   let lastAttackedAnimationFrameTime = 0;
 
   const { renderTorch } = useEnvironmentObject(cellSize, TileSize);
 
-  const mobsData = [
-    { name: "ghoul1", waypoints: [{x: 1, y: 0.5}, {x: 8.75, y: 0.5}, {x: 8, y: 6.5}, {x: 1.5, y: 6.5}] },
-    { name: "ghoul2", waypoints: [{x: 11, y: 1}, {x: 11.5, y: 8.25}, {x: 14.75, y: 8}, {x: 14.25, y: 1.75}] },
-    { name: "ghoul3", waypoints: [{x: 1, y: 9}, {x: 8, y: 9}] }
-  ];
+  const mobsData = level.mobs ?? [];
   const mobs = useMob(cellSize, TileSize, playerSize, mobsData);
 
   useEffect(() => {
@@ -158,15 +194,17 @@ export const GameLevel = () => {
         showGridOverlay && renderGridOverlay(ctx);
 
         //render torches
-        renderTorch(ctx, timestamp, 3, 2);
-        renderTorch(ctx, timestamp, 7, 2);
-        renderTorch(ctx, timestamp, 3, 6);
-        renderTorch(ctx, timestamp, 7, 6);
+        if(level.torches && level.torches.length > 0){
+          level.torches.map((torch, i) => {
+            return renderTorch(ctx, timestamp, torch.x, torch.y);
+          });
+        }
 
         //render mobs 
-        mobs.render(ctx, timestamp, showCollisionBox);
-        mobs.move();
-
+        if(level.mobs && level.mobs.length > 0){
+          mobs.render(ctx, timestamp, showCollisionBox);
+          mobs.move();
+        }
         //render player
         renderPlayer(timestamp, ctx, flipImage, playerImage);
 
@@ -269,7 +307,7 @@ export const GameLevel = () => {
 
     return cleanup;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [level]);
 
   useEffect(() => {
     if(keysPressed.length === 0) {
@@ -391,11 +429,12 @@ export const GameLevel = () => {
   }
 
   const renderBackgroundLayer = (ctx, spriteSheet) => {
+    if(!level.baseMap || (level.baseMap && level.baseMap.length === 0)) return;
     level.baseMap.map((block, index) => {
-      const x = block.x * cellSize;
-      const y = block.y * cellSize;
-
-      const tilePosition = level.dungeonTileKey.find((x) => x.id === block.tileKey);
+      //transpose x annd y for rendering
+      const y = block.x * cellSize;
+      const x = block.y * cellSize;
+      let tilePosition = level.dungeonTileKey.find((x) => x.id === block.tileKey);
       return ctx.drawImage(spriteSheet, tilePosition.x, tilePosition.y, TileSize, TileSize, x, y, cellSize, cellSize);
     });
   };
@@ -403,11 +442,12 @@ export const GameLevel = () => {
   const renderCollisionLayer = (ctx, spriteSheet) => {
     collisionObjects = [];
     // eslint-disable-next-line array-callback-return
+    if(!level.collisionMap || (level.collisionMap && level.collisionMap.length === 0)) return;
     level.collisionMap.map((block, index) => {
-      const x = block.x * cellSize;
-      const y = block.y * cellSize;
-      
-      const tilePosition = level.dungeonTileKey.find((x) => x.id === block.tileKey);
+      //transpose x annd y for rendering
+      const y = block.x * cellSize;
+      const x = block.y * cellSize;
+      let tilePosition = level.dungeonTileKey.find((x) => x.id === block.tileKey);
       ctx.drawImage(spriteSheet, tilePosition.x, tilePosition.y, TileSize, TileSize, x, y, cellSize, cellSize);
       if(showCollisionBox) {
         ctx.strokeStyle = "yellow"; 
@@ -415,7 +455,6 @@ export const GameLevel = () => {
         ctx.strokeRect(x, y, cellSize, cellSize);
       }      
       collisionObjects.push({ x, y, width: cellSize, height: cellSize });
-      
     });
   };
 

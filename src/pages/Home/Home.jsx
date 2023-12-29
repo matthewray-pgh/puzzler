@@ -9,7 +9,7 @@ export const Home = () => {
       <h1>Home</h1>
 
       <div>
-        <Link to="/game">Start Game</Link>
+        <Link to="/levelSelect">Start Game</Link>
       </div>
 
       <div>

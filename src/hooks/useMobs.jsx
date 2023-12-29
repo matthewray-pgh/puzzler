@@ -24,7 +24,7 @@ export const useMob = (cellSize, tileSize, mobSize, mobsData, isPaused) => {
       },
       position: {x: data.waypoints[0].x, y: data.waypoints[0].y},
       waypoints: data.waypoints,
-      movementSpeed: 0.015,
+      movementSpeed: 0.03,
       flipImage: false,
     };
 

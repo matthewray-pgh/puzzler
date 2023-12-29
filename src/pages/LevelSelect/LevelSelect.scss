@@ -1,0 +1,54 @@
+@import '../../assets/styles/variables.scss';
+
+.level-select {
+  background-color: $background;
+  color: $font-primary;
+  min-height: 100vh;
+  font-family: $font-family;
+
+  h1 {
+    margin: 0;
+    padding: 10px;
+  }
+
+  &__levels {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    align-content: center;
+    justify-content: center;
+  }
+
+  &__level {
+    padding: 10px;
+    margin: 10px;
+    border-radius: 4px;
+    background-color: $button-color;
+    color: $font-primary;
+    font-family: $font-family;
+    font-size: 18px;
+
+    &:hover {
+      cursor: pointer;
+      background-color: darken($button-color, 10%);
+    }
+
+    &:active {
+      transform: translateY(2px);
+    }
+  }
+
+  &__level-label {
+    text-align: center;
+    text-decoration: none;
+    font-size: 25px;
+    padding: 10px;
+  }
+
+  &__level-image {
+    margin: 0 auto;
+    width: 150px;
+    height: 75px;
+    object-fit: cover;
+    border: 2px solid $font-primary;
+  }
+}

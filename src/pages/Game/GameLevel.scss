@@ -71,14 +71,10 @@
 }
 
 .gameStatusMessage {
-  display: flex;
-  align-content: center;
-  justify-content: center;
+
   padding: 10px;
 
   font-family: $font-press-start;
-  font-size: 50px;
+  font-size: 20px;
   font-weight: bold;
-  color: #24ada6;
-  -webkit-text-stroke: 0.1px white;
 }
