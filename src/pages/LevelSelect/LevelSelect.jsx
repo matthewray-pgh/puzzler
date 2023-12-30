@@ -2,6 +2,7 @@ import React from 'react';
 import './LevelSelect.scss';
 
 import { Link } from 'react-router-dom';
+import { Header } from '../../components/Header.jsx';
 
 export const LevelSelect = () => {
 
@@ -13,7 +14,13 @@ export const LevelSelect = () => {
 
   return (
     <div className="level-select">
-      <h1>Level Select</h1>
+      <Header 
+        title="Level Select"
+        menuOptions={[
+          { label:"Game Stats", link:"/stats" },
+          { label:"Level Builder", link:"/levelBuilder" }
+        ]}
+      />
       <section className="level-select__levels"> 
         {levels.map((level) => {
           return (
