@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+
+import { Header } from '../../components/Header';
 import './GameLevel.scss';
 
-//import level from "../../assets/levelOne.json";
 import dungeonTilesSheet from "../../assets/images/DungeonTiles.png";
+import dungeonDetails from "../../assets/dungeon.json";
 import playerMasterSheet from "../../assets/images/character-master.png"
 
 import { useControls } from '../../hooks/useControls';
@@ -42,17 +44,11 @@ import { HUD } from "../../components/HUD";
 export const GameLevel = () => {
   //params from url
   const { fileName } = useParams();
-  const [level, setLevel] = useState({
-    cellSize: 32,
-    spriteSheetSize: {
-      x: 1200,
-      y: 600
-    },
+  const [levelDetails, setLevelDetails] = useState({
     level: {
       width: 10,
       height: 10
     },
-    dungeonTileKey: [],
     doorway: [],
     baseMap: [],
     collisionMap: [],
@@ -66,7 +62,7 @@ export const GameLevel = () => {
       setIsLoading(true);
       import(`../../assets/${fileName}.json`)
         .then((data) => {
-          setLevel(data.default);
+          setLevelDetails(data.default);
           setIsLoading(false);
         })
         .catch((error) => {
@@ -93,15 +89,15 @@ export const GameLevel = () => {
   }, [leftKeyPressed, rightKeyPressed, upKeyPressed, downKeyPressed, keysPressed, mouseClicked]);
 
   //game display and level rendering
-  const TileSize = level.cellSize;
+  const TileSize = dungeonDetails.cellSize;
   const cameraDimensions = {width: 15, height: 9};
   const scale = 2; //TODO: needs automated based on screen size
   const playerSize = TileSize * scale + (TileSize * scale / 2);
   const cellSize = TileSize * scale;
   const gridWidth = cameraDimensions.width * cellSize;
   const gridHeight = cameraDimensions.height * cellSize;
-  const levelWidth = level.level.width * cellSize;
-  const levelHeight = level.level.height * cellSize;
+  const levelWidth = levelDetails.level.width * cellSize;
+  const levelHeight = levelDetails.level.height * cellSize;
 
   let collisionObjects = [];
 
@@ -162,7 +158,7 @@ export const GameLevel = () => {
 
   const { renderTorch } = useEnvironmentObject(cellSize, TileSize);
 
-  const mobsData = level.mobs ?? [];
+  const mobsData = levelDetails.mobs ?? [];
   const mobs = useMob(cellSize, TileSize, playerSize, mobsData);
 
   useEffect(() => {
@@ -194,14 +190,14 @@ export const GameLevel = () => {
         showGridOverlay && renderGridOverlay(ctx);
 
         //render torches
-        if(level.torches && level.torches.length > 0){
-          level.torches.map((torch, i) => {
+        if(levelDetails.torches && levelDetails.torches.length > 0){
+          levelDetails.torches.map((torch, i) => {
             return renderTorch(ctx, timestamp, torch.x, torch.y);
           });
         }
 
         //render mobs 
-        if(level.mobs && level.mobs.length > 0){
+        if(levelDetails.mobs && levelDetails.mobs.length > 0){
           mobs.render(ctx, timestamp, showCollisionBox);
           mobs.move();
         }
@@ -307,7 +303,7 @@ export const GameLevel = () => {
 
     return cleanup;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [level]);
+  }, [levelDetails]);
 
   useEffect(() => {
     if(keysPressed.length === 0) {
@@ -336,11 +332,11 @@ export const GameLevel = () => {
     camera.x = position.x < 0 ? 0 : position.x;
     camera.y = position.y < 0 ? 0 : position.y;
 
-    if(position.x + camera.width > level.level.width * cellSize) {
-      camera.x = level.level.width * cellSize - camera.width;
+    if(position.x + camera.width > levelDetails.level.width * cellSize) {
+      camera.x = levelDetails.level.width * cellSize - camera.width;
     }
-    if(position.y + camera.height > level.level.height * cellSize) {
-      camera.y = level.level.height * cellSize - camera.height;
+    if(position.y + camera.height > levelDetails.level.height * cellSize) {
+      camera.y = levelDetails.level.height * cellSize - camera.height;
     }
 
     setDisplay((prevState) => ({...prevState, camera: camera}));
@@ -429,12 +425,12 @@ export const GameLevel = () => {
   }
 
   const renderBackgroundLayer = (ctx, spriteSheet) => {
-    if(!level.baseMap || (level.baseMap && level.baseMap.length === 0)) return;
-    level.baseMap.map((block, index) => {
+    if(!levelDetails.baseMap || (levelDetails.baseMap && levelDetails.baseMap.length === 0)) return;
+    levelDetails.baseMap.map((block, index) => {
       //transpose x annd y for rendering
       const y = block.x * cellSize;
       const x = block.y * cellSize;
-      let tilePosition = level.dungeonTileKey.find((x) => x.id === block.tileKey);
+      let tilePosition = dungeonDetails.dungeonTileKey.find((x) => x.id === block.tileKey);
       return ctx.drawImage(spriteSheet, tilePosition.x, tilePosition.y, TileSize, TileSize, x, y, cellSize, cellSize);
     });
   };
@@ -442,12 +438,12 @@ export const GameLevel = () => {
   const renderCollisionLayer = (ctx, spriteSheet) => {
     collisionObjects = [];
     // eslint-disable-next-line array-callback-return
-    if(!level.collisionMap || (level.collisionMap && level.collisionMap.length === 0)) return;
-    level.collisionMap.map((block, index) => {
+    if(!levelDetails.collisionMap || (levelDetails.collisionMap && levelDetails.collisionMap.length === 0)) return;
+    levelDetails.collisionMap.map((block, index) => {
       //transpose x annd y for rendering
       const y = block.x * cellSize;
       const x = block.y * cellSize;
-      let tilePosition = level.dungeonTileKey.find((x) => x.id === block.tileKey);
+      let tilePosition = dungeonDetails.dungeonTileKey.find((x) => x.id === block.tileKey);
       ctx.drawImage(spriteSheet, tilePosition.x, tilePosition.y, TileSize, TileSize, x, y, cellSize, cellSize);
       if(showCollisionBox) {
         ctx.strokeStyle = "yellow"; 
@@ -485,12 +481,15 @@ export const GameLevel = () => {
 
   return (
     <div className="game-level">
-      <div className="menu">
-        <div className="menu__title">Dungeon Explorer</div>
-        <div className="menu__buttons">
-          <button>Menu</button>
-        </div>
-      </div>
+      <Header 
+        title="Dungeon Explorer"
+        menuOptions={[
+          { label:"Level Select", link:"/levelSelect" },
+          { label:"Game Stats", link:"/stats" },
+          { label:"Level Builder", link:"/levelBuilder" }
+        ]}
+      />
+
       <div className="details">
         {/* <div>{`Player x:${display.x} y:${display.y}`}</div> */}
         {/* <div>{`Player x:${display.x / 32} y:${display.y / 32}`}</div> */}

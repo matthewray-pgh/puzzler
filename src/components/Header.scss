@@ -1,0 +1,30 @@
+@import '../assets/styles/variables.scss';
+
+.header {
+  padding: 10px;
+  background-color: $background;
+  color: $font-primary;
+  font-family: $font-family;
+
+  &__title {
+    font-size: 36px;
+    font-weight: bold;
+    margin: 0;
+    padding: 0;
+  }
+
+  a {
+    margin: 0 20px;
+    color: $font-primary;
+    text-align: center;
+    text-decoration: none;
+    font-size: 24px;
+    transition: background 1s;
+
+    &:hover {
+      font-weight: bold;
+      background: $focus;
+      border-radius: 5px;
+    }
+  }
+}

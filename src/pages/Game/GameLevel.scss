@@ -6,48 +6,6 @@
   min-height: 100vh;
 }
 
-.menu {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-content: center;
-
-  padding: 10px;
-
-  background-color: $background;
-  color: $font-primary;
-  font-family: $font-family;
-
-  &__title {
-    font-size: 25px;
-    margin: 0;
-    padding: 0;
-  }
-
-  &__buttons {
-    justify-self: end;
-  }
-
-  button {
-    background-color: $button-color;
-    color: $font-primary;
-    border: none;
-    border-radius: 4px;
-
-    font-family: $font-family;
-    font-size: 18px;
-    padding: 5px 10px;
-
-    &:hover {
-      cursor: pointer;
-      background-color: darken($button-color, 10%);
-    }
-
-    &:active {
-      transform: translateY(2px);
-    }
-  }
-}
-
 .level {
   background-color: $background;
   color: $font-primary;
