@@ -7,6 +7,7 @@ import './LevelBuilder.scss';
 import dungeonDetails from "../../assets/dungeon.json"
 import dungeonTilesSheet from "../../assets/images/DungeonTiles.png";
 import { tileLayer, tileState } from "./LevelBuilderConstants.js";
+import { useTile } from "../../hooks/useTile";
 
 const pixelsPerTile = 32;
 
@@ -23,21 +24,7 @@ export const LevelBuilder = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
 
-  const tileLookUpById = useCallback((id) => {
-    let tile = dungeonDetails.dungeonTileKey.find((x) => x.id === id);
-    if(!tile) {
-      tile = dungeonDetails.doorwayKey.find((x) => x.id === id);
-    }
-    return tile;
-  },[]);
-
-  const tileLookUpByCoordinates = useCallback((x, y) => {
-    return levelTiles.find((tiles) => tiles.x === x && tiles.y === y);
-  },[levelTiles]);
-
-  const baseLookUpByCoordinates = useCallback((x, y) => {
-    return baseMap.find((tiles) => tiles.x === x && tiles.y === y && tiles.layer === "base");
-  }, [baseMap]);
+  const { tileLookUpById, baseLookUpByCoordinates } = useTile(dungeonDetails);
 
   // generates base map based on initial width and height
   const buildMap = (x, y) => {

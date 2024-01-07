@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { Header } from '../../components/Header';
@@ -12,6 +12,7 @@ import { useControls } from '../../hooks/useControls';
 import { usePlayer } from '../../hooks/usePlayer';
 import { useEnvironmentObject } from "../../hooks/useEnvironmentObject";
 import { useMob } from "../../hooks/useMobs";
+import { useTile } from "../../hooks/useTile";
 
 import { HUD } from "../../components/HUD";
 
@@ -46,8 +47,8 @@ export const GameLevel = () => {
   const { fileName } = useParams();
   const [levelDetails, setLevelDetails] = useState({
     level: {
-      width: 10,
-      height: 10
+      width: 0,
+      height: 0
     },
     doorway: [],
     baseMap: [],
@@ -80,6 +81,9 @@ export const GameLevel = () => {
 
   //canvas
   const canvasRef = useRef(null);
+
+  //game ui
+  const [gameMessage, setGameMessage] = useState(null);
   
   //user input controls
   const { leftKeyPressed, rightKeyPressed, upKeyPressed, downKeyPressed, keysPressed, mouseClicked } = useControls({canvasRef});
@@ -92,18 +96,36 @@ export const GameLevel = () => {
   const TileSize = dungeonDetails.cellSize;
   const cameraDimensions = {width: 15, height: 9};
   const scale = 2; //TODO: needs automated based on screen size
-  const playerSize = TileSize * scale + (TileSize * scale / 2);
+  
   const cellSize = TileSize * scale;
   const gridWidth = cameraDimensions.width * cellSize;
   const gridHeight = cameraDimensions.height * cellSize;
   const levelWidth = levelDetails.level.width * cellSize;
   const levelHeight = levelDetails.level.height * cellSize;
 
+  //player values
+  const playerSize = TileSize * scale + (TileSize * scale / 2);
+  //transpose from file for render
+  const playerStartPosition = useMemo(() => {
+    return { 
+      x: levelDetails.start ? levelDetails.start.y : 1,
+      y: levelDetails.start ? levelDetails.start.x : 2
+    }
+  }, [levelDetails])
+
+  //TODO: start position not loading from json file
+  //console.log('playerStartPosition', playerStartPosition);
+
   let collisionObjects = [];
+  const [interactObjects, setInteractObjects] = useState([]);
 
   //player variables
   //TODO: continue porting logic to usePlayer hook
-  let initialPosition = { x: -0.25 * cellSize, y: 3.5 * cellSize };
+  const startingPositionOffset = {x: -0.25, y: 0.5};
+  let initialPosition = { 
+    x: (playerStartPosition.x + startingPositionOffset.x) * cellSize, 
+    y: (playerStartPosition.y + startingPositionOffset.y) * cellSize 
+  };
   const { 
     player, 
     actions, 
@@ -111,12 +133,13 @@ export const GameLevel = () => {
     updatePlayerPosition,
     updateActions,
   } = usePlayer(initialPosition, playerSize, cellSize, TileSize);
+
   const playerRef = useRef({ player, actions });
   useEffect(() => {
     playerRef.current = { player, actions };
   }, [player, actions]);
 
-  let playerPosition = { x: -0.25 * cellSize, y: 3.5 * cellSize };
+  let playerPosition = { x: -0.25 * cellSize, y: 2.5 * cellSize };
   let playerFacing = true; //true == flipImage || facing right
 
   const [playerIsDamaged, setPlayerIsDamaged] = useState(false);
@@ -129,12 +152,7 @@ export const GameLevel = () => {
     height: gridHeight
   };
 
-  const [display, setDisplay] = useState({
-    level: 1, 
-    x: playerPosition.x, 
-    y: playerPosition.y,
-    camera: camera
-  });
+  const { tileLookUpById } = useTile(dungeonDetails);
 
   //idle animation variables
   let idleAnimationFrame = 0;
@@ -185,7 +203,7 @@ export const GameLevel = () => {
         ctx.save();        
         ctx.translate(-camera.x, -camera.y);
 
-        renderBackgroundLayer(ctx, dungeonTiles, camera.width, camera.height);
+        renderBackgroundLayer(ctx, dungeonTiles);
         renderCollisionLayer(ctx, dungeonTiles);
         showGridOverlay && renderGridOverlay(ctx);
 
@@ -221,6 +239,13 @@ export const GameLevel = () => {
           height: playerSize * 0.75,
         };
 
+        const interactionDetection = {
+          x: playerRef.current.player.position.x - camera.x,
+          y: playerRef.current.player.position.y - camera.y,
+          width: playerSize,
+          height: playerSize + (playerSize * 0.2),
+        };
+
         if(showCollisionBox) {
           //hit
           ctx.strokeStyle = "aqua"; 
@@ -230,6 +255,10 @@ export const GameLevel = () => {
           ctx.strokeStyle = "fuchsia";
           ctx.lineWidth = 2;
           ctx.strokeRect(movementDetection.x, movementDetection.y, movementDetection.width, movementDetection.height);
+          //interaction
+          ctx.strokeStyle = "blue";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(interactionDetection.x, interactionDetection.y, interactionDetection.width, interactionDetection.height);
         }
 
         const movePlayer = (dx, dy, collisionObjects, camera) => {
@@ -249,7 +278,6 @@ export const GameLevel = () => {
             playerPosition.x = newPlayerX;
             playerPosition.y = newPlayerY;
             updatePlayerPosition(newPlayerX, newPlayerY);
-            setDisplay((prevState) => ({...prevState, x: playerPosition.x, y: playerPosition.y}));
           }
         };
 
@@ -270,6 +298,7 @@ export const GameLevel = () => {
         }
 
         checkCollisions(damageDetection);
+        checkInteractions(interactionDetection);
         
         requestAnimationFrame(gameLoop);
       };
@@ -297,6 +326,24 @@ export const GameLevel = () => {
       setPlayerIsDamaged(isPlayerCollidingWithMob);
     };
 
+    const checkInteractions = (playerInteractBox) => {
+      const iObjects = collisionObjects.filter((obj) => {
+        return (
+          obj.interact &&
+          playerInteractBox.x + camera.x < obj.x + obj.width &&
+          playerInteractBox.x + playerInteractBox.width + camera.x > obj.x &&
+          playerInteractBox.y + camera.y < obj.y + obj.height &&
+          playerInteractBox.y + playerInteractBox.height + camera.y > obj.y
+        );
+      });
+      if(iObjects.length > 0){
+        setInteractObjects(iObjects)
+      }
+      else{
+        setInteractObjects([]);
+      }
+    };
+
     const cleanup = () => {};
 
     startGame();
@@ -305,23 +352,68 @@ export const GameLevel = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [levelDetails]);
 
+  //set GameMessage when state object has items in it
+  useEffect(() => {
+    if(interactObjects.length > 0){
+      setGameMessage(interactObjects[0].interactDetails.message);
+    } else {
+      setGameMessage(null);
+    }
+  }, [interactObjects]);
+
+  //key pressed actions
   useEffect(() => {
     if(keysPressed.length === 0) {
       updateActions('isIdle', true);
       updateActions('isMoving', false);
+      updateActions('isInteracting', false);
     } else {
-      updateActions('isIdle', false);
-      updateActions('isMoving', true);
+      if(keysPressed.includes('e')){
+        updateActions('isInteracting', true);
+        handleInteractions();
+        setGameMessage(null);
+      }
+      else {
+        updateActions('isIdle', false);
+        updateActions('isMoving', true);
+        updateActions('isInteracting', false);
+      }
     }
 
     if(mouseClicked){
       updateActions('isAttacking', true);
       updateActions('isMoving', false);
       updateActions('isIdle', false);
+      updateActions('isInteracting', false);
     } 
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keysPressed, mouseClicked]);
+
+  const handleInteractions = () => {
+    if(interactObjects.length > 0){
+      //TODO: remove change to base layer and replace with non-collise collision prop
+      let updatedCollisionMap = levelDetails.collisionMap;
+      const updateBaseMap = [...levelDetails.baseMap];
+
+      const { x, y, id, interactDetails } = interactObjects[0];
+      //transpose
+      const newX = y / cellSize;
+      const newY = x / cellSize;
+
+      let collisionRemovalIndex = updatedCollisionMap.findIndex(obj => {
+        return obj.tileKey === id && obj.x === newX && obj.y === newY;
+      });
+      updatedCollisionMap.splice(collisionRemovalIndex, 1);
+      const newBaseLevel = updateBaseMap.filter(obj => !(obj.x === newX && obj.y === newY ));
+      newBaseLevel.push({ x: newX, y: newY, tileKey: interactDetails.tile });
+      setLevelDetails(prevState => ({
+        ...prevState,
+        collisionMap: updatedCollisionMap,
+        baseMap: newBaseLevel
+      }));
+    }
+  }
 
   const updateCamera = (cellSize) => {
     const position = {
@@ -338,8 +430,6 @@ export const GameLevel = () => {
     if(position.y + camera.height > levelDetails.level.height * cellSize) {
       camera.y = levelDetails.level.height * cellSize - camera.height;
     }
-
-    setDisplay((prevState) => ({...prevState, camera: camera}));
   };
 
   useEffect(() => {
@@ -351,6 +441,7 @@ export const GameLevel = () => {
 
   const renderPlayer = (timestamp, ctx, flipImage, playerImage) => {
     let spriteSheetPosition = {x: 0, y: 0};
+    //idle
     const idleAnimationFrameTotal = 7;
     if(playerRef.current.actions.isIdle){
       const deltaTime = timestamp - lastIdleAnimationFrameTime;
@@ -364,6 +455,7 @@ export const GameLevel = () => {
       spriteSheetPosition = {x: idleAnimationFrame * TileSize, y: 32};
     };
 
+    //moving
     const moveAnimationFrameTotal = 6;
     if(playerRef.current.actions.isMoving){
       const deltaTime = timestamp - lastMoveAnimationFrameTime;
@@ -377,6 +469,7 @@ export const GameLevel = () => {
       spriteSheetPosition = {x: moveAnimationFrame * TileSize, y: 64};
     };
 
+    //hit
     const damagedAnimationFrameTotal = 4;
     if(playerRef.current.actions.isHit){
       const deltaTime = timestamp - lastDamagedAnimationFrameTime;
@@ -390,6 +483,7 @@ export const GameLevel = () => {
       spriteSheetPosition = {x: damagedAnimationFrame * TileSize, y: 96};
     };
 
+    //attacking
     const attackAnimationFrameTotal = 3;
     if(playerRef.current.actions.isAttacking){
       const deltaTime = timestamp - lastAttackedAnimationFrameTime;
@@ -405,6 +499,11 @@ export const GameLevel = () => {
 
       spriteSheetPosition = {x: attackAnimationFrame * TileSize, y: 128};
     };
+
+    //interacting
+    if(playerRef.current.actions.isInteracting){
+      //TODO: add player interaction animation
+    }
 
     ctx.translate(playerPosition.x + playerSize / 2, playerPosition.y + playerSize / 2);
     if (flipImage) {
@@ -422,16 +521,16 @@ export const GameLevel = () => {
       playerSize,
       playerSize
     );
-  }
+  };
 
   const renderBackgroundLayer = (ctx, spriteSheet) => {
-    if(!levelDetails.baseMap || (levelDetails.baseMap && levelDetails.baseMap.length === 0)) return;
+    if(!levelDetails.baseMap || (levelDetails.baseMap && levelDetails.baseMap.length <= 0)) return;
     levelDetails.baseMap.map((block, index) => {
       //transpose x annd y for rendering
       const y = block.x * cellSize;
       const x = block.y * cellSize;
-      let tilePosition = dungeonDetails.dungeonTileKey.find((x) => x.id === block.tileKey);
-      return ctx.drawImage(spriteSheet, tilePosition.x, tilePosition.y, TileSize, TileSize, x, y, cellSize, cellSize);
+      let tile = tileLookUpById(block.tileKey);
+      return ctx.drawImage(spriteSheet, tile.x, tile.y, TileSize, TileSize, x, y, cellSize, cellSize);
     });
   };
 
@@ -440,17 +539,24 @@ export const GameLevel = () => {
     // eslint-disable-next-line array-callback-return
     if(!levelDetails.collisionMap || (levelDetails.collisionMap && levelDetails.collisionMap.length === 0)) return;
     levelDetails.collisionMap.map((block, index) => {
-      //transpose x annd y for rendering
       const y = block.x * cellSize;
       const x = block.y * cellSize;
-      let tilePosition = dungeonDetails.dungeonTileKey.find((x) => x.id === block.tileKey);
-      ctx.drawImage(spriteSheet, tilePosition.x, tilePosition.y, TileSize, TileSize, x, y, cellSize, cellSize);
+      let tile = tileLookUpById(block.tileKey);
+      ctx.drawImage(spriteSheet, tile.x, tile.y, TileSize, TileSize, x, y, cellSize, cellSize);
       if(showCollisionBox) {
         ctx.strokeStyle = "yellow"; 
         ctx.lineWidth = 2; 
         ctx.strokeRect(x, y, cellSize, cellSize);
       }      
-      collisionObjects.push({ x, y, width: cellSize, height: cellSize });
+      collisionObjects.push({ 
+        x, 
+        y, 
+        width: cellSize, 
+        height: cellSize, 
+        id: tile.id,
+        interact: tile.interact ? true : false,
+        interactDetails: tile.interact ? tile.interact : null,
+      });
     });
   };
 
@@ -477,7 +583,7 @@ export const GameLevel = () => {
       }
     }
     ctx.stroke();
-  }
+  };
 
   return (
     <div className="game-level">
@@ -489,20 +595,13 @@ export const GameLevel = () => {
           { label:"Level Builder", link:"/levelBuilder" }
         ]}
       />
-
-      <div className="details">
-        {/* <div>{`Player x:${display.x} y:${display.y}`}</div> */}
-        {/* <div>{`Player x:${display.x / 32} y:${display.y / 32}`}</div> */}
-        {/* <div>Health: {display.health}</div> */}
-        {/* <div>Mana: {display.mana}</div> */}
-        {/* <div>Experience: {display.experience}</div> */}
-        {/* <div>{`Camera x:${display.camera.x} y:${display.camera.y}`}</div> */}
-        {/* <div>{`Width:${gridWidth} Height:${gridHeight}`}</div> */}
-      </div>
       <div className="hud">
         <HUD health={player.health} magic={player.magic}/>
       </div>
       <div className="level" style={{width: gridWidth}}>
+        {gameMessage && <div className="gameMessage" style={{width: gridWidth}}>
+          {gameMessage}
+        </div>}
         <canvas className="gameWindow" ref={canvasRef} width={gridWidth} height={gridHeight} />
       </div>
       <div className="gameStatusMessage">
