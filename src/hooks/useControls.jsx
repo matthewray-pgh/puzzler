@@ -30,6 +30,9 @@ export const useControls = ({ canvasRef }) => {
         setDownKeyPressed(true);
         setKeysPressed((prevState) => [...prevState, event.key]);
         break;
+      case "e":
+        setKeysPressed((prevState) => [...prevState, event.key]);
+        break;
       default:
         break;
     }
@@ -52,6 +55,9 @@ export const useControls = ({ canvasRef }) => {
         break;
       case "ArrowDown":
       case "s":
+        setDownKeyPressed(false);
+        break;
+      case "e":
         setDownKeyPressed(false);
         break;
       default:
