@@ -38,9 +38,8 @@ import { HUD } from "../../components/HUD";
 // pottery
 
 //TO DO:
-// interaction pop up
-// -- open doors
 // add dash / slide to player - does minor damage to enemies - can be used to break pots and barrels
+// add release notes / features to home page
 
 export const GameLevel = () => {
   //params from url
@@ -63,6 +62,7 @@ export const GameLevel = () => {
       setIsLoading(true);
       import(`../../assets/${fileName}.json`)
         .then((data) => {
+          const collisionObjects = data.default.collisionMap.map
           setLevelDetails(data.default);
           setIsLoading(false);
         })
@@ -131,6 +131,7 @@ export const GameLevel = () => {
     actions, 
     updatePlayerHealth, 
     updatePlayerPosition,
+    updatePlayerFlipImage,
     updateActions,
   } = usePlayer(initialPosition, playerSize, cellSize, TileSize);
 
@@ -180,6 +181,7 @@ export const GameLevel = () => {
   const mobs = useMob(cellSize, TileSize, playerSize, mobsData);
 
   useEffect(() => {
+    if(isLoading) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
@@ -220,6 +222,8 @@ export const GameLevel = () => {
           mobs.move();
         }
         //render player
+        playerPosition.x = playerRef.current.player.position.x;
+        playerPosition.y = playerRef.current.player.position.y;
         renderPlayer(timestamp, ctx, flipImage, playerImage);
 
         ctx.restore();
@@ -299,6 +303,9 @@ export const GameLevel = () => {
 
         checkCollisions(damageDetection);
         checkInteractions(interactionDetection);
+
+        updatePlayerPosition(playerPosition.x, playerPosition.y);
+        updatePlayerFlipImage(flipImage);
         
         requestAnimationFrame(gameLoop);
       };
@@ -350,7 +357,7 @@ export const GameLevel = () => {
 
     return cleanup;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [levelDetails]);
+  }, [levelDetails, isLoading]);
 
   //set GameMessage when state object has items in it
   useEffect(() => {
@@ -586,7 +593,7 @@ export const GameLevel = () => {
   };
 
   return (
-    <div className="game-level">
+    <div className="gameLevel">
       <Header 
         title="Dungeon Explorer"
         menuOptions={[
@@ -595,17 +602,17 @@ export const GameLevel = () => {
           { label:"Level Builder", link:"/levelBuilder" }
         ]}
       />
-      <div className="hud">
-        <HUD health={player.health} magic={player.magic}/>
-      </div>
-      <div className="level" style={{width: gridWidth}}>
-        {gameMessage && <div className="gameMessage" style={{width: gridWidth}}>
+      
+      <div className="gameLevel__main" style={{width: gridWidth}}>
+        <div className="gameLevel__hud">
+          <HUD health={player.health} magic={player.magic}/>
+        </div>
+        {gameMessage && <div className="gameLevel__message" style={{width: gridWidth}}>
           {gameMessage}
         </div>}
-        <canvas className="gameWindow" ref={canvasRef} width={gridWidth} height={gridHeight} />
+        <canvas className="gameLevel__window" ref={canvasRef} width={gridWidth} height={gridHeight} />
       </div>
-      <div className="gameStatusMessage">
-        START GAME
+      <div className="gameLevel__statusMessage">
         {player.health <= 0 && <span>GAME OVER</span>}
       </div>
     </div>

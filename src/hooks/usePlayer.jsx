@@ -7,6 +7,7 @@ export const usePlayer = (position, size, cellSize, tileSize) => {
     speed: 3,
     direction: directions.RIGHT,
     facing: directions.RIGHT,
+    flipImage: true,
     health: { total: 5, current: 5 },
     magic: { total: 1, current: 1 }, 
     position: { x: position.x, y: position.y },
@@ -38,6 +39,12 @@ export const usePlayer = (position, size, cellSize, tileSize) => {
   const updatePausedPosition = (x, y) => {
     setPlayer(prevState => {
       return {...prevState, pausedPosition: { x: x, y: y }}
+    });
+  };
+
+  const updatePlayerFlipImage = (flipImage) => {
+    setPlayer(prevState => {
+      return {...prevState, flipImage: flipImage}
     });
   };
 
@@ -188,6 +195,7 @@ export const usePlayer = (position, size, cellSize, tileSize) => {
     updatePlayerHealth,
     updatePlayerMagic,
     updatePlayerPosition,
+    updatePlayerFlipImage,
     updatePausedPosition,
     actions,
     updateActions,

@@ -57,9 +57,6 @@ export const useControls = ({ canvasRef }) => {
       case "s":
         setDownKeyPressed(false);
         break;
-      case "e":
-        setDownKeyPressed(false);
-        break;
       default:
         break;
     }
