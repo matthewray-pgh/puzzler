@@ -94,7 +94,7 @@ export const LevelBuilder = () => {
     const base = filteredTiles.map((tile) => {
       let baseTile = tile;
       if(tile.layer !== "base") {
-        baseTile = baseLookUpByCoordinates(tile.x, tile.y);
+        baseTile = baseLookUpByCoordinates(tile.x, tile.y, baseMap);
       }
       return {x: tile.x, y: tile.y, tileKey: baseTile.tileKey};
     });
