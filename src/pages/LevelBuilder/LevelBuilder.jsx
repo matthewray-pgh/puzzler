@@ -1,11 +1,13 @@
 import React, {useState, useCallback, useMemo} from 'react';
-import { Link } from 'react-router-dom';
 
 import { Header } from '../../components/Header.jsx';
 import './LevelBuilder.scss';
 
 import dungeonDetails from "../../assets/dungeon.json"
 import dungeonTilesSheet from "../../assets/images/DungeonTiles.png";
+import torchSheet from "../../assets/images/torch-Sheet.png";
+import arrow from "../../assets/images/arrow.png";
+
 import { tileLayer, tileState } from "./LevelBuilderConstants.js";
 import { useTile } from "../../hooks/useTile";
 
@@ -15,11 +17,12 @@ export const LevelBuilder = () => {
   const [outputJson, setOutputJson] = useState('');
   const [level, setLevel] = useState({x: '', y: '', zoomSize: 1});
   const [levelTiles, setLevelTiles] = useState([]);
-  const [current, setCurrent] = useState({x: '', y: ''});
+  
   const [tileSelected, setTileSelected] = useState('');
 
   const [baseMap, setBaseMap] = useState([]);
   const [collisionMap, setCollisionMap] = useState([]);
+  const [objectsMap, setObjectsMap] = useState([]);
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -56,7 +59,7 @@ export const LevelBuilder = () => {
     const tileDetails = tileLookUpById(tileSelected);
     const updateTileIndex = levelTiles.findIndex(tile => tile.x === x && tile.y === y);
     if(tileSelected === 'reset') {
-      const previousTile = baseLookUpByCoordinates(x, y);
+      const previousTile = baseLookUpByCoordinates(x, y, baseMap);
       const newTileSet = [...levelTiles];
       newTileSet[updateTileIndex] = {x: x, y: y, tileKey: previousTile.id, layer: tileLayer.BASE};
       setLevelTiles(newTileSet);
@@ -67,7 +70,7 @@ export const LevelBuilder = () => {
       newTileSet[updateTileIndex] = newTile;
       setLevelTiles(newTileSet);
     }
-    setCurrent({x: x, y: y});
+    // eslint-disable-next-line
   },[baseLookUpByCoordinates, levelTiles, tileLookUpById, tileSelected]);
 
   const generateMap = useCallback(() => {
@@ -117,6 +120,7 @@ export const LevelBuilder = () => {
     link.href = url;
     link.download = 'dungeon-map.json';
     link.click();
+    // eslint-disable-next-line
   }, [level, baseLookUpByCoordinates, levelTiles]);
   
   const Tiles = useMemo(() => {
@@ -125,7 +129,6 @@ export const LevelBuilder = () => {
     let longPressEnd = {x: '', y: ''};
     
     const handleMouseDown = (x, y) => {
-      setCurrent({x: x, y: y});
       longPressTimer = setTimeout(() => {
         longPressStart = {x: x, y: y};
       }, 500);
@@ -202,18 +205,6 @@ export const LevelBuilder = () => {
     setTileSelected(id);
   };
 
-  const baseLayerTiles = useMemo(() => {
-    return dungeonDetails.dungeonTileKey.filter((x) => x.layer === tileLayer.BASE)
-  }, []);
-
-  const collisionLayerTiles = useMemo(() => {
-    return dungeonDetails.dungeonTileKey.filter((x) => x.layer === tileLayer.MAIN)
-  }, []);
-
-  const doorwayTiles = useMemo(() => {
-    return dungeonDetails.doorwayKey.filter((x) => x.state === tileState.STATIC)
-  }, []);
-
   const resetMap = useCallback(() => {
     setLevel({x: '', y: '', zoomSize: 1});
     setBaseMap([]); 
@@ -261,7 +252,7 @@ export const LevelBuilder = () => {
             <label htmlFor="x" className="admin__label">Width [x]</label>
             <input 
               name="x" 
-              type="text" 
+              type="number" 
               placeholder="Enter Width"
               className="admin__input"
               onChange={(e) => handleInputChange(e)} 
@@ -272,7 +263,7 @@ export const LevelBuilder = () => {
             <label htmlFor="y" className="admin__label">Height [y]</label>
             <input 
               name="y" 
-              type="text" 
+              type="number" 
               placeholder="Enter Height" 
               className="admin__input"
               onChange={(e) => handleInputChange(e)}
@@ -299,53 +290,31 @@ export const LevelBuilder = () => {
         </section>
 
         <section className="admin__map--preview">
+          
+          <TilePanel 
+            tileSelected={tileSelected}
+            handleTileButtonClick={handleTileButtonClick}
+          />
+          
           <div className="panel">
-            <h3>TILES</h3>
-
-            <div style={{padding: '10px'}}>
-              <button 
-                className={`admin__button ${'reset' === tileSelected ? "current-image-button" : "image-button"}`}
-                onClick={() => handleTileButtonClick('reset')}>
-                  <div style={{border: '3px solid #fff', height: '26px', width: '26px'}}></div>
-                  clear cell
-              </button>
-
-              <h3>Floor</h3>
-              <TileButtonList 
-                tileSpriteSheet={dungeonTilesSheet}
-                layerTiles={baseLayerTiles}
-                handleClick={handleTileButtonClick}
-                tileSelected={tileSelected}
-              />
-
-              <h3>Walls</h3>
-              <TileButtonList 
-                tileSpriteSheet={dungeonTilesSheet}
-                layerTiles={collisionLayerTiles}
-                handleClick={handleTileButtonClick}
-                tileSelected={tileSelected}
-              />
-
-              <h3>Doorways</h3>
-              <TileButtonList
-                tileSpriteSheet={dungeonTilesSheet}
-                layerTiles={doorwayTiles}
-                handleClick={handleTileButtonClick}
-                tileSelected={tileSelected}
-              />
-            </div>
-          </div>
-
-          <div className="panel">
-            {/* <div>Selected: {`[x:${current.x}, y:${current.y}]`}</div> */}
-            <div id="map" style={{
-              margin: '30px', 
-              height: `${level.zoomSize * pixelsPerTile * level.y}px`,
-              width: `${level.zoomSize * pixelsPerTile * level.x}px`,
-              display: 'grid', 
-              gridTemplateColumns: `repeat(${level.x}, ${pixelsPerTile * level.zoomSize}px)`,
-            }}>
-              {Tiles}
+            <div className="panel__map-container">
+              <div id="map" className="panel__map" style={{
+                margin: '30px', 
+                height: `${level.zoomSize * pixelsPerTile * level.y}px`,
+                width: `${level.zoomSize * pixelsPerTile * level.x}px`,
+                display: 'grid', 
+                gridTemplateColumns: `repeat(${level.x}, ${pixelsPerTile * level.zoomSize}px)`,
+              }}>
+                {Tiles}
+              </div>
+              {/* <div id="map__objects" className="panel__map" style={{
+                margin: '30px', 
+                height: `${level.zoomSize * pixelsPerTile * level.y}px`,
+                width: `${level.zoomSize * pixelsPerTile * level.x}px`,
+                display: 'grid', 
+                gridTemplateColumns: `repeat(${level.x}, ${pixelsPerTile * level.zoomSize}px)`,
+              }}>
+              </div> */}
             </div>
             <div>{outputJson}</div>
           </div>
@@ -362,26 +331,159 @@ export const LevelBuilder = () => {
   );
 };
 
-const TileButtonList = ({tileSpriteSheet, layerTiles, handleClick, tileSelected}) => {
+const TilePanel = ({tileSelected, handleTileButtonClick}) => {
+  const [showFloorList, setShowFloorList] = useState(false);
+  const [showWallsList, setShowWallsList] = useState(false);
+  const [showDoorwaysList, setShowDoorwaysList] = useState(false);
+  const [showObjectsList, setShowObjectsList] = useState(false);
+
+  const baseLayerTiles = useMemo(() => {
+    return dungeonDetails.dungeonTileKey.filter((x) => x.layer === tileLayer.BASE)
+  }, []);
+
+  const collisionLayerTiles = useMemo(() => {
+    return dungeonDetails.dungeonTileKey.filter((x) => x.layer === tileLayer.MAIN)
+  }, []);
+
+  const doorwayTiles = useMemo(() => {
+    return dungeonDetails.doorwayKey.filter((x) => x.state === tileState.STATIC)
+  }, []);
+
   return (
+    <div className="panel">
+      <h3>TILES</h3>
+
+      <div style={{padding: '10px'}}>
+        <button 
+          className={`admin__button ${'reset' === tileSelected ? "current-image-button" : "image-button"}`}
+          onClick={() => handleTileButtonClick('reset')}>
+            <div style={{border: '3px solid #fff', height: '26px', width: '26px'}}></div>
+            clear cell
+        </button>
+
+        <div className="panel__collapse-header" onClick={() => {
+            setShowFloorList(!showFloorList)
+          }} >
+          <h3 className="panel__collapse-header--title">Floor</h3>
+          <div className="panel__collapse-header--icon">
+            <img src={arrow} alt="arrow" 
+              className={showFloorList ? "panel__collapse-header--icon-up" : "panel__collapse-header--icon-down"}/>
+          </div>
+        </div>
+        <TileButtonList 
+          tileSpriteSheet={dungeonTilesSheet}
+          layerTiles={baseLayerTiles}
+          handleClick={handleTileButtonClick}
+          tileSelected={tileSelected}
+          showList={showFloorList}
+        />
+
+        <TileListHeader 
+          title="Walls"
+          showList={showWallsList}
+          setShowList={setShowWallsList}
+        />
+        <TileButtonList 
+          tileSpriteSheet={dungeonTilesSheet}
+          layerTiles={collisionLayerTiles}
+          handleClick={handleTileButtonClick}
+          tileSelected={tileSelected}
+          showList={showWallsList}
+        />
+
+        <TileListHeader
+          title="Doorways"
+          showList={showDoorwaysList}
+          setShowList={setShowDoorwaysList}
+        />
+        <TileButtonList
+          tileSpriteSheet={dungeonTilesSheet}
+          layerTiles={doorwayTiles}
+          handleClick={handleTileButtonClick}
+          tileSelected={tileSelected}
+          showList={showDoorwaysList}
+        />
+
+        <TileListHeader 
+          title="Objects"
+          showList={showObjectsList}
+          setShowList={setShowObjectsList}
+        />
+        <div>
+          {showObjectsList &&
+          <TileButton 
+            tile={{id: 'torch', x: 0, y: 0, detail: 'Torch'}}
+            tileSpriteSheet={torchSheet}
+            handleClick={handleTileButtonClick}
+            tileSelected={tileSelected}
+          />}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+const TileListHeader = ({
+  title, 
+  showList, 
+  setShowList
+}) => {
+  return (
+    <div className="panel__collapse-header" onClick={() => {
+      setShowList(!showList)
+    }} >
+    <h3 className="panel__collapse-header--title">{title}</h3>
+    <div className="panel__collapse-header--icon">
+      <img src={arrow} alt="arrow" 
+        className={showList ? "panel__collapse-header--icon-up" : "panel__collapse-header--icon-down"}/>
+    </div>
+  </div>
+)};
+
+const TileButtonList = ({
+  tileSpriteSheet, 
+  layerTiles, 
+  handleClick, 
+  tileSelected, 
+  showList
+}) => {
+  return (
+    showList &&
     layerTiles.map((tile, i) => {
       return (
         tile.detail &&
-        <button 
-          key={i} 
-          className={`admin__button ${tile.id === tileSelected ? "current-image-button" : "image-button"}`}
-          onClick={() => handleClick(tile.id)}
-        >
-          <div style={{
-            backgroundImage: `url(${tileSpriteSheet})`,
-            backgroundPosition: `-${tile.x}px -${tile.y}px`,
-            height: '32px',
-            width: '32px',
-          }}></div>
-          {tile.detail}
-        </button>
+        <TileButton 
+          key={i}
+          tile={tile}
+          tileSpriteSheet={tileSpriteSheet}
+          handleClick={handleClick}
+          tileSelected={tileSelected}
+        />
       )
     })
+  );
+};
+
+const TileButton = ({
+  tile, 
+  tileSpriteSheet, 
+  handleClick, 
+  tileSelected
+}) => {
+  return (
+    <button 
+      className={`admin__button ${tile.id === tileSelected ? "current-image-button" : "image-button"}`}
+      onClick={() => handleClick(tile.id)}
+    >
+      <div style={{
+        backgroundImage: `url(${tileSpriteSheet})`,
+        backgroundPosition: `-${tile.x}px -${tile.y}px`,
+        height: '32px',
+        width: '32px',
+      }}></div>
+      {tile.detail}
+    </button>
   );
 };
 

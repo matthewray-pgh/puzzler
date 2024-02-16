@@ -10,6 +10,7 @@ export const usePlayer = (position, size, cellSize, tileSize) => {
     flipImage: true,
     health: { total: 5, current: 5 },
     magic: { total: 1, current: 1 }, 
+    attack: { damage: 1, cooldown: 1000 },
     position: { x: position.x, y: position.y },
     pausedPosition: { x: position.x, y: position.y },
   });
@@ -47,6 +48,12 @@ export const usePlayer = (position, size, cellSize, tileSize) => {
       return {...prevState, flipImage: flipImage}
     });
   };
+
+  const updatePlayerFacing = (direction) => {
+    setPlayer(prevState => {
+      return {...prevState, facing: direction}
+    }
+  )};
 
   const [actions, setActions] = useState({
     isIdle: true,
@@ -196,6 +203,7 @@ export const usePlayer = (position, size, cellSize, tileSize) => {
     updatePlayerMagic,
     updatePlayerPosition,
     updatePlayerFlipImage,
+    updatePlayerFacing,
     updatePausedPosition,
     actions,
     updateActions,
