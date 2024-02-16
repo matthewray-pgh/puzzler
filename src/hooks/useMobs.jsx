@@ -6,7 +6,6 @@ export const useMob = (cellSize, tileSize, mobSize, mobsData, isPaused) => {
   const mobs = mobsData.map(data => {
     const mob = {
       name: data.name,
-
       sprite: ghoulMaster,
       idle: {
         animation: {
@@ -24,8 +23,18 @@ export const useMob = (cellSize, tileSize, mobSize, mobsData, isPaused) => {
       },
       position: {x: data.waypoints[0].x, y: data.waypoints[0].y},
       waypoints: data.waypoints,
-      movementSpeed: 0.03,
+      move: { speed: 0.03, damageCooldown: 500 },
       flipImage: false,
+      health: data.health ? data.health : 1,
+      attack: { damage: 1, cooldown: 1000},
+      damageCooldown: 500,
+      state : { 
+        isIdle: true, 
+        isMoving: false, 
+        isAttacking: false, 
+        isCasting: false, 
+        isDamaged: false,
+      }
     };
 
     return mob;
@@ -95,7 +104,7 @@ export const useMob = (cellSize, tileSize, mobSize, mobsData, isPaused) => {
     if(isPaused) return;
     mobs.forEach(mob => {
       mob.flipImage = false;
-
+      if(mob.state.isDamaged) return;
       // Inside your game loop
       if (mob.waypoints.length > 0) {
         const waypoint = mob.waypoints[0];
@@ -103,8 +112,8 @@ export const useMob = (cellSize, tileSize, mobSize, mobsData, isPaused) => {
         const dy = waypoint.y - mob.position.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance > mob.movementSpeed) {
-          const ratio = mob.movementSpeed / distance;
+        if (distance > mob.move.speed) {
+          const ratio = mob.move.speed / distance;
           mob.position.x += dx * ratio;
           mob.position.y += dy * ratio;
           if (dx > 0) {

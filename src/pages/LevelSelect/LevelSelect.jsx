@@ -25,9 +25,9 @@ export const LevelSelect = () => {
         {levels.map((level) => {
           return (
             <Link to={`/game/${level.file}`} className="level-select__level" key={`${level.id}-${level.file}`}>
-            <div className="level-select__level-image">
+              {/* <div className="level-select__level-image">
                 <img src={level.image} alt={`Level ${level.id}`} />
-              </div>
+              </div> */}
               <div className="level-select__level-label">
                 LEVEL {level.id}
               </div>
