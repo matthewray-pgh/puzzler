@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 import { Header } from '../../components/Header';
 import './GameLevel.scss';
@@ -33,6 +33,8 @@ export const GameLevel = () => {
     torches: []
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [gameOver, setGameOver] = useState(false);
+  // const [gamePaused, setGamePaused] = useState(false);
 
   useEffect(() => {
     const fetchLevelData = async (fileName) => {
@@ -67,11 +69,12 @@ export const GameLevel = () => {
     };
 
     fetchLevelData(fileName);
+    //eslint-disable-next-line
   }, [fileName]);
   
   //development tools
   const showGridOverlay = false;
-  const showCollisionBox = true;
+  const showCollisionBox = false;
 
   //canvas
   const canvasRef = useRef(null);
@@ -99,27 +102,8 @@ export const GameLevel = () => {
 
   //player values
   const playerSize = TileSize * scale + (TileSize * scale / 2);
-  //transpose from file for render
-  const playerStartPosition = useMemo(() => {
-    return { 
-      x: levelDetails.start ? levelDetails.start.y : 1,
-      y: levelDetails.start ? levelDetails.start.x : 2
-    }
-  }, [levelDetails]);
   let isPlayerAttacking = false;
 
-  //TODO: start position not loading from json file
-  //console.log('playerStartPosition', playerStartPosition);
-
-  const [interactObjects, setInteractObjects] = useState([]);
-
-  //player variables
-  //TODO: continue porting logic to usePlayer hook
-  const startingPositionOffset = {x: -0.25, y: 0.5};
-  let initialPosition = { 
-    x: (playerStartPosition.x + startingPositionOffset.x) * cellSize, 
-    y: (playerStartPosition.y + startingPositionOffset.y) * cellSize 
-  };
   const { 
     player, 
     actions, 
@@ -128,7 +112,7 @@ export const GameLevel = () => {
     updatePlayerFlipImage,
     updatePlayerFacing,
     updateActions,
-  } = usePlayer(initialPosition, playerSize, cellSize, TileSize);
+  } = usePlayer({x:0, y:0}, playerSize, cellSize, TileSize);
 
   const playerRef = useRef({ player, actions });
   useEffect(() => {
@@ -138,7 +122,7 @@ export const GameLevel = () => {
   let playerPosition = { x: -0.25 * cellSize, y: 2.5 * cellSize };
   let playerFacing = directions.RIGHT;
 
-  const [playerIsDamaged, setPlayerIsDamaged] = useState(false);
+  const [interactObjects, setInteractObjects] = useState([]);
 
   //camera
   const camera = { 
@@ -175,8 +159,27 @@ export const GameLevel = () => {
   const mobsData = levelDetails.mobs ?? [];
   const mobs = useMob(cellSize, TileSize, playerSize, mobsData);
 
+  const gameOverRef = useRef(false);
+
+  useEffect(() => {
+    console.log(levelDetails);
+  }, [levelDetails]);
+
   useEffect(() => {
     if(isLoading) return;
+
+    if(levelDetails.start) {
+      const startingPositionOffset = {x: -0.25, y: 0.5};
+      const initialPlayerPosition = {
+        x: (levelDetails.start.y + startingPositionOffset.x) * cellSize,
+        y: (levelDetails.start.x + startingPositionOffset.y) * cellSize
+      };
+
+      // Set the player's initial position - direct mutation of playerRef.current.player.position
+      playerRef.current.player.position.x = initialPlayerPosition.x;
+      playerRef.current.player.position.y = initialPlayerPosition.y;
+    };
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
 
@@ -216,6 +219,7 @@ export const GameLevel = () => {
           mobs.render(ctx, timestamp, showCollisionBox);
           mobs.move();
         }
+
         //render player
         playerPosition.x = playerRef.current.player.position.x;
         playerPosition.y = playerRef.current.player.position.y;
@@ -225,122 +229,124 @@ export const GameLevel = () => {
 
         ctx.restore();
 
-        //draw player collider box
-        const movementDetection = {
-          x: playerPosition.x + (playerSize / 3) - camera.x,
-          y: playerPosition.y + (playerSize / 2) - camera.y,
-          width: playerSize * 0.3,
-          height: playerSize * 0.45,
-        };
+        if(!gameOverRef.current) {
+          //draw player collider box
+          const movementDetection = {
+            x: playerPosition.x + (playerSize / 3) - camera.x,
+            y: playerPosition.y + (playerSize / 2) - camera.y,
+            width: playerSize * 0.3,
+            height: playerSize * 0.45,
+          };
 
-        const damageDetection = {
-          x: playerPosition.x + (playerSize * 0.3) - camera.x,
-          y: playerPosition.y + (playerSize * 0.2) - camera.y,
-          width: playerSize * 0.4,
-          height: playerSize * 0.75,
-        };
+          const damageDetection = {
+            x: playerPosition.x + (playerSize * 0.3) - camera.x,
+            y: playerPosition.y + (playerSize * 0.2) - camera.y,
+            width: playerSize * 0.4,
+            height: playerSize * 0.75,
+          };
 
-        const interactionDetection = {
-          x: playerRef.current.player.position.x - camera.x,
-          y: playerRef.current.player.position.y - camera.y,
-          width: playerSize,
-          height: playerSize + (playerSize * 0.2),
-        };
+          const interactionDetection = {
+            x: playerRef.current.player.position.x - camera.x,
+            y: playerRef.current.player.position.y - camera.y,
+            width: playerSize,
+            height: playerSize + (playerSize * 0.2),
+          };
 
-        const attackHorizontalDetectOffset = playerSize * 0.5;
-        const attackDetectionX = (direction) => {
-          const basePosition = playerPosition.x + (playerSize / 3) - camera.x;
-          if(direction === directions.LEFT) 
-            return basePosition - attackHorizontalDetectOffset;
-          else if(direction === directions.RIGHT)
-            return basePosition + attackHorizontalDetectOffset;
-          else 
-            return basePosition;
-        };
-        const attackVerticalDetectOffset = playerSize * 0.65;
-        const attackDetectionY = (direction) => {
-          const basePosition = playerPosition.y + (playerSize / 2) - camera.y;
-          if(direction === directions.UP) 
-            return basePosition - attackVerticalDetectOffset;
-          else if(direction === directions.DOWN)
-            return basePosition + attackVerticalDetectOffset;
-          else 
-            return basePosition;
-        };
-        const attackDetection = {
-          x: attackDetectionX(playerRef.current.player.facing),
-          y: attackDetectionY(playerRef.current.player.facing),
-          width: playerSize * 0.25,
-          height: playerSize * 0.25,
-        };
+          const attackHorizontalDetectOffset = playerSize * 0.5;
+          const attackDetectionX = (direction) => {
+            const basePosition = playerPosition.x + (playerSize / 3) - camera.x;
+            if(direction === directions.LEFT) 
+              return basePosition - attackHorizontalDetectOffset;
+            else if(direction === directions.RIGHT)
+              return basePosition + attackHorizontalDetectOffset;
+            else 
+              return basePosition;
+          };
+          const attackVerticalDetectOffset = playerSize * 0.65;
+          const attackDetectionY = (direction) => {
+            const basePosition = playerPosition.y + (playerSize / 2) - camera.y;
+            if(direction === directions.UP) 
+              return basePosition - attackVerticalDetectOffset;
+            else if(direction === directions.DOWN)
+              return basePosition + attackVerticalDetectOffset;
+            else 
+              return basePosition;
+          };
+          const attackDetection = {
+            x: attackDetectionX(playerRef.current.player.facing),
+            y: attackDetectionY(playerRef.current.player.facing),
+            width: playerSize * 0.25,
+            height: playerSize * 0.25,
+          };
 
-        if(showCollisionBox) {
-          //hit
-          ctx.strokeStyle = "aqua"; 
-          ctx.lineWidth = 2; 
-          ctx.strokeRect(damageDetection.x, damageDetection.y, damageDetection.width, damageDetection.height);
-          //movement detection
-          ctx.strokeStyle = "fuchsia";
-          ctx.lineWidth = 2;
-          ctx.strokeRect(movementDetection.x, movementDetection.y, movementDetection.width, movementDetection.height);
-          //interaction
-          ctx.strokeStyle = "blue";
-          ctx.lineWidth = 2;
-          ctx.strokeRect(interactionDetection.x, interactionDetection.y, interactionDetection.width, interactionDetection.height);
-          //attack
-          ctx.strokeStyle = "red";
-          ctx.lineWidth = 2;
-          ctx.strokeRect(attackDetection.x, attackDetection.y, attackDetection.width, attackDetection.height);
-        }
-
-        const movePlayer = (dx, dy, collisionObjects, camera) => {
-          const newPlayerX = playerPosition.x + dx;
-          const newPlayerY = playerPosition.y + dy;
-
-          const isCollision = collisionObjects.some((obj) => {
-            return (
-              movementDetection.x + dx + camera.x < obj.x + obj.width &&
-              movementDetection.x + dx + movementDetection.width + camera.x > obj.x &&
-              movementDetection.y + dy + camera.y < obj.y + obj.height &&
-              movementDetection.y + dy + movementDetection.height + camera.y > obj.y
-            );
-          });
-
-          if (!isCollision && !playerRef.current.actions.isHit) {
-            playerPosition.x = newPlayerX;
-            playerPosition.y = newPlayerY;
-            updatePlayerPosition(newPlayerX, newPlayerY);
+          if(showCollisionBox) {
+            //hit
+            ctx.strokeStyle = "aqua"; 
+            ctx.lineWidth = 2; 
+            ctx.strokeRect(damageDetection.x, damageDetection.y, damageDetection.width, damageDetection.height);
+            //movement detection
+            ctx.strokeStyle = "fuchsia";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(movementDetection.x, movementDetection.y, movementDetection.width, movementDetection.height);
+            //interaction
+            ctx.strokeStyle = "blue";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(interactionDetection.x, interactionDetection.y, interactionDetection.width, interactionDetection.height);
+            //attack
+            ctx.strokeStyle = "red";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(attackDetection.x, attackDetection.y, attackDetection.width, attackDetection.height);
           }
-        };
 
-        //update player position
-        if (controlsRef.current.leftKeyPressed) {
-          playerFacing = directions.LEFT;
-          movePlayer(-player.speed, 0, levelDetails.collisionObjects, camera);
-          flipImage = false;
-        }
-        if (controlsRef.current.rightKeyPressed) {
-          playerFacing = directions.RIGHT;
-          movePlayer(player.speed, 0, levelDetails.collisionObjects, camera);
-          flipImage = true;
-        }
-        if (controlsRef.current.upKeyPressed) {
-          playerFacing = directions.UP;
-          movePlayer(0, -player.speed, levelDetails.collisionObjects, camera);
-        }
-        if (controlsRef.current.downKeyPressed) {
-          playerFacing = directions.DOWN;
-          movePlayer(0, player.speed, levelDetails.collisionObjects, camera);
-        }
-        updatePlayerFacing(playerFacing);
+          const movePlayer = (dx, dy, collisionObjects, camera) => {
+            const newPlayerX = playerPosition.x + dx;
+            const newPlayerY = playerPosition.y + dy;
 
-        checkCollisions(damageDetection);
-        checkInteractions(interactionDetection);
-        checkPlayerAttacking(attackDetection);
+            const isCollision = collisionObjects.some((obj) => {
+              return (
+                movementDetection.x + dx + camera.x < obj.x + obj.width &&
+                movementDetection.x + dx + movementDetection.width + camera.x > obj.x &&
+                movementDetection.y + dy + camera.y < obj.y + obj.height &&
+                movementDetection.y + dy + movementDetection.height + camera.y > obj.y
+              );
+            });
 
-        updatePlayerPosition(playerPosition.x, playerPosition.y);
-        updatePlayerFlipImage(flipImage);
-        
+            if (!isCollision && !playerRef.current.actions.isDamaged) {
+              playerPosition.x = newPlayerX;
+              playerPosition.y = newPlayerY;
+              updatePlayerPosition(newPlayerX, newPlayerY);
+            }
+          };
+
+          //update player position
+          if (controlsRef.current.leftKeyPressed) {
+            playerFacing = directions.LEFT;
+            movePlayer(-player.speed, 0, levelDetails.collisionObjects, camera);
+            flipImage = false;
+          }
+          if (controlsRef.current.rightKeyPressed) {
+            playerFacing = directions.RIGHT;
+            movePlayer(player.speed, 0, levelDetails.collisionObjects, camera);
+            flipImage = true;
+          }
+          if (controlsRef.current.upKeyPressed) {
+            playerFacing = directions.UP;
+            movePlayer(0, -player.speed, levelDetails.collisionObjects, camera);
+          }
+          if (controlsRef.current.downKeyPressed) {
+            playerFacing = directions.DOWN;
+            movePlayer(0, player.speed, levelDetails.collisionObjects, camera);
+          }
+          updatePlayerFacing(playerFacing);
+
+          checkCollisions(damageDetection);
+
+          checkInteractions(interactionDetection);
+          checkPlayerAttacking(attackDetection);
+
+          updatePlayerPosition(playerPosition.x, playerPosition.y);
+          updatePlayerFlipImage(flipImage);
+        }
         requestAnimationFrame(gameLoop);
       };
 
@@ -363,8 +369,17 @@ export const GameLevel = () => {
           return false;
         }
       });
-      playerRef.current.actions.isHit = isPlayerCollidingWithMob;
-      setPlayerIsDamaged(isPlayerCollidingWithMob);
+      
+      if (isPlayerCollidingWithMob && !playerRef.current.actions.isDamaged) {
+        updateActions('isDamaged', true);
+        // Reduce player health only once upon collision
+        updatePlayerHealth(1);
+
+        // Reset isDamaged state after 1 second
+        setTimeout(() => {
+          updateActions('isDamaged', false);
+        }, 1000);
+      }
     };
 
     const checkInteractions = (playerInteractBox) => {
@@ -388,6 +403,7 @@ export const GameLevel = () => {
     const checkPlayerAttacking = (playerAttackBox) => {
       if(controlsRef.current.mouseClicked && !isPlayerAttacking){
         // Loop through each mob and check for collision with the playerActions.
+        // eslint-disable-next-line array-callback-return
         mobs.mobs.some((mob) => {
           if (
             playerAttackBox.x + camera.x < mob.position.x * cellSize + mob.collisionBox.x + mob.collisionBox.width &&
@@ -396,7 +412,7 @@ export const GameLevel = () => {
             playerAttackBox.y + playerAttackBox.height + camera.y > mob.position.y * cellSize + mob.collisionBox.y
           ) {
             isPlayerAttacking = true;
-            console.log('mob', mob.name, mob.health, playerRef.current.player.attack.damage);
+            
             // Collision detected with this mob. You can handle it here (e.g., reduce player health).
             mob.health -= playerRef.current.player.attack.damage;
             mob.state.isDamaged = true;
@@ -529,11 +545,16 @@ export const GameLevel = () => {
   };
 
   useEffect(() => {
-    if(playerIsDamaged) {
-      updatePlayerHealth(1);
+    gameOverRef.current = gameOver;
+  }, [gameOver]);
+
+  useEffect(() => {
+    if(player.health.current <= 0){
+      updateActions('isDead', true);
+      setGameOver(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerIsDamaged]);
+  }, [player.health]);
 
   const renderPlayer = (timestamp, ctx, flipImage, playerImage) => {
     let spriteSheetPosition = {x: 0, y: 0};
@@ -567,7 +588,7 @@ export const GameLevel = () => {
 
     //hit
     const damagedAnimationFrameTotal = 4;
-    if(playerRef.current.actions.isHit){
+    if(playerRef.current.actions.isDamaged){
       const deltaTime = timestamp - lastDamagedAnimationFrameTime;
 
       if (deltaTime >= damagedAnimationSpeed) {
@@ -690,10 +711,41 @@ export const GameLevel = () => {
           {gameMessage}
         </div>}
         <canvas className="gameLevel__window" ref={canvasRef} width={gridWidth} height={gridHeight} />
-      </div>
-      <div className="gameLevel__statusMessage">
-        {player.health <= 0 && <span>GAME OVER</span>}
+        <GameOver gameOver={gameOver} />
       </div>
     </div>
   );
 };
+
+const GameOver = ({gameOver}) => {
+  const navigate = useNavigate();
+
+  const onExitClick = () => {
+    navigate('/levelSelect');
+  };
+
+  const onRetryClick = () => {
+    window.location.reload();
+  };
+
+  if(gameOver){
+    return (
+      <div className="gameLevel__game-over">
+        <div className="gameLevel__game-over--menu">
+          <h3>Game Over</h3>
+          <div>
+            <button 
+              className="gameLevel__game-over--menu-button"
+              onClick={onRetryClick}>Retry</button>
+          </div>
+          <div>
+            <button 
+              className="gameLevel__game-over--menu-button"
+              onClick={onExitClick}>Exit</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
