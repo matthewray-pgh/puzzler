@@ -14,8 +14,11 @@ import { useTile } from "../../hooks/useTile";
 const pixelsPerTile = 32;
 
 export const LevelBuilder = () => {
-  const [outputJson, setOutputJson] = useState('');
   const [level, setLevel] = useState({x: '', y: '', zoomSize: 1});
+  const [mapDimensions, setMapDimensions] = useState({width: 0, height: 0});
+  const [tileDimensions, setTileDimensions] = useState({width: 0, height: 0});
+  const [columnCount, setColumnCount] = useState(0);
+
   const [levelTiles, setLevelTiles] = useState([]);
   
   const [tileSelected, setTileSelected] = useState('');
@@ -73,13 +76,17 @@ export const LevelBuilder = () => {
     // eslint-disable-next-line
   },[baseLookUpByCoordinates, levelTiles, tileLookUpById, tileSelected]);
 
-  const generateMap = useCallback(() => {
-    if(levelTiles.length > 0) {
-      setShowConfirm(true);
-    } else {
-      setLevelTiles(buildMap(level.x, level.y));
-    }
-  }, [levelTiles, level]);
+  const generateMap = () => {
+    setMapDimensions({width: level.zoomSize * pixelsPerTile * level.x, height: level.zoomSize * pixelsPerTile * level.y});
+    setTileDimensions({width: level.zoomSize * pixelsPerTile, height: level.zoomSize * pixelsPerTile});
+    setLevelTiles(buildMap(level.x, level.y));
+    setColumnCount(level.x);
+    // if(levelTiles.length > 0) {
+    //   setShowConfirm(true);
+    // } else {
+    //   setLevelTiles(buildMap(level.x, level.y));
+    // }
+  };
 
   const generateJson = useCallback(() => {
     // level type
@@ -122,80 +129,6 @@ export const LevelBuilder = () => {
     link.click();
     // eslint-disable-next-line
   }, [level, baseLookUpByCoordinates, levelTiles]);
-  
-  const Tiles = useMemo(() => {
-    let longPressTimer;
-    let longPressStart = {x: '', y: ''};
-    let longPressEnd = {x: '', y: ''};
-    
-    const handleMouseDown = (x, y) => {
-      longPressTimer = setTimeout(() => {
-        longPressStart = {x: x, y: y};
-      }, 500);
-    };
-
-    const handleMouseUp = (x, y) => {
-      if(longPressStart.x !== '' && longPressStart.y !== '') {
-        longPressEnd = {x: x, y: y};
-
-        let diffX = longPressEnd.x - longPressStart.x;
-        let diffY = longPressEnd.y - longPressStart.y;
-
-        if (diffX !== 0) {
-          const newTileSet = [...levelTiles];
-          for (let i = 0; i <= Math.abs(diffX); i++) {
-            const newX = longPressStart.x + (diffX > 0 ? i : -i);
-            const startY = longPressStart.y;
-            const updateTileIndex = newTileSet.findIndex((tile) => tile.x === newX && tile.y === startY);
-            if (updateTileIndex !== -1) {
-              newTileSet[updateTileIndex] = { x: newX, y: longPressStart.y, tileKey: tileSelected, layer: tileLayer.MAIN };
-            }
-          }
-          setLevelTiles(newTileSet);
-        }
-
-        if (diffY !== 0) {
-          const newTileSet = [...levelTiles];
-          for (let i = 0; i <= Math.abs(diffY); i++) {
-            const newY = longPressStart.y + (diffY > 0 ? i : -i);
-            const startX = longPressStart.x;
-            const updateTileIndex = newTileSet.findIndex((tile) => tile.y === newY && tile.x === startX);
-            if (updateTileIndex !== -1) {
-              const tileDetails = tileLookUpById(tileSelected);
-              newTileSet[updateTileIndex] = { x: longPressStart.x, y: newY, tileKey: tileSelected, layer: tileDetails.layer };
-            }
-          }
-          setLevelTiles(newTileSet);
-        }
-      }
-      clearTimeout(longPressTimer);
-    };
-
-    return levelTiles.map((tile, i) => {
-      const key = `${tile.x}-${tile.y}-${i}`;
-      let tileDetail = dungeonDetails.dungeonTileKey.find(tileKey => tileKey.id === tile.tileKey);
-      if(!tileDetail) {
-        tileDetail = dungeonDetails.doorwayKey.find(tileKey => tileKey.id === tile.tileKey);
-      }
-      return (
-        <div 
-          key={key} 
-          style={{
-            backgroundImage: tileDetail && `url(${dungeonTilesSheet})`,
-            backgroundPosition: tileDetail && `-${tileDetail.x / pixelsPerTile * 100}% -${tileDetail.y / pixelsPerTile * 100}%`,
-            backgroundSize: `${dungeonDetails.spriteSheetSize.x}% ${dungeonDetails.spriteSheetSize.y}%`,
-            height: `${pixelsPerTile}px`,
-            width: `${pixelsPerTile}px`,
-            transform: `scale(${level.zoomSize})`,
-          }}
-          onClick={() => handleTileClick(tile.x, tile.y)}
-          onMouseUp={() => handleMouseUp(tile.x, tile.y)}
-          onMouseDown={(e) => handleMouseDown(tile.x, tile.y)}
-        >
-        </div>
-      )
-    })
-  }, [levelTiles, tileSelected, tileLookUpById, level.zoomSize, handleTileClick]);
 
   const handleTileButtonClick = (id) => {
     if(id === tileSelected) {
@@ -210,7 +143,6 @@ export const LevelBuilder = () => {
     setBaseMap([]); 
     setCollisionMap([]); 
     setLevelTiles([]); 
-    setOutputJson([]);
   }, []);
 
   const handleMapCreate = (width, height, base, collision) => {
@@ -277,9 +209,10 @@ export const LevelBuilder = () => {
               onChange={(e) => handleInputChange(e)}
               value={level.zoomSize}
             >
-              <option value={1}>32</option>
-              <option value={2}>64</option>
-              <option value={3}>96</option>
+              <option value={0.5}>16 (x.5)</option>
+              <option value={1}>32 (x1)</option>
+              <option value={2}>64 (x2)</option>
+              <option value={3}>96 (x3)</option>
             </select>
           </div>
           <button className="admin__button" onClick={generateMap}>Generate Map</button>
@@ -306,17 +239,43 @@ export const LevelBuilder = () => {
                 gridTemplateColumns: `repeat(${level.x}, ${pixelsPerTile * level.zoomSize}px)`,
               }}>
                 {Tiles}
+                <Tiles 
+                  level={level}
+                  levelTiles={levelTiles}
+                  tileSelected={tileSelected}
+                  setLevelTiles={setLevelTiles}
+                  tileLookUpById={tileLookUpById}
+                  handleTileClick={handleTileClick}
+                />
               </div>
-              {/* <div id="map__objects" className="panel__map" style={{
-                margin: '30px', 
-                height: `${level.zoomSize * pixelsPerTile * level.y}px`,
-                width: `${level.zoomSize * pixelsPerTile * level.x}px`,
+              
+              {/* <div className="panel__map" style={{
+                width: `${mapDimensions.width}px`,
+                height: `${mapDimensions.height}px`,
                 display: 'grid', 
-                gridTemplateColumns: `repeat(${level.x}, ${pixelsPerTile * level.zoomSize}px)`,
+                gridTemplateColumns: `repeat(${columnCount}, ${pixelsPerTile * level.zoomSize}px)`,
               }}>
+                {levelTiles.length > 0 && levelTiles.map((tile, i) => {
+                  return (
+                    <div 
+                      style={{
+                        width: `${tileDimensions.width}px`,
+                        height: `${tileDimensions.height}px`,
+                        border: '1px solid rgba(255, 255, 255, 0.25)', 
+                      }} 
+                      key={i}
+                      onClick={() => {
+                        console.log('clicked x:', tile.x, ', y:', tile.y);
+                        handleTileClick(tile.x, tile.y);
+                      }}
+                    >
+                      <div>{tile.x}</div> 
+                      <div>{tile.y}</div>
+                    </div>
+                  );
+                })}
               </div> */}
             </div>
-            <div>{outputJson}</div>
           </div>
         </section>
       </section>
@@ -329,6 +288,87 @@ export const LevelBuilder = () => {
     />
     </>
   );
+};
+
+const Tiles = ({
+  level,
+  levelTiles,
+  tileSelected,
+  setLevelTiles,
+  tileLookUpById,
+  handleTileClick
+}) => {
+  let longPressTimer;
+  let longPressStart = {x: '', y: ''};
+  let longPressEnd = {x: '', y: ''};
+  
+  const handleMouseDown = (x, y) => {
+    longPressTimer = setTimeout(() => {
+      longPressStart = {x: x, y: y};
+    }, 500);
+  };
+
+  const handleMouseUp = (x, y) => {
+    if(longPressStart.x !== '' && longPressStart.y !== '') {
+      longPressEnd = {x: x, y: y};
+
+      let diffX = longPressEnd.x - longPressStart.x;
+      let diffY = longPressEnd.y - longPressStart.y;
+
+      if (diffX !== 0) {
+        const newTileSet = [...levelTiles];
+        for (let i = 0; i <= Math.abs(diffX); i++) {
+          const newX = longPressStart.x + (diffX > 0 ? i : -i);
+          const startY = longPressStart.y;
+          const updateTileIndex = newTileSet.findIndex((tile) => tile.x === newX && tile.y === startY);
+          if (updateTileIndex !== -1) {
+            newTileSet[updateTileIndex] = { x: newX, y: longPressStart.y, tileKey: tileSelected, layer: tileLayer.MAIN };
+          }
+        }
+        setLevelTiles(newTileSet);
+      }
+
+      if (diffY !== 0) {
+        const newTileSet = [...levelTiles];
+        for (let i = 0; i <= Math.abs(diffY); i++) {
+          const newY = longPressStart.y + (diffY > 0 ? i : -i);
+          const startX = longPressStart.x;
+          const updateTileIndex = newTileSet.findIndex((tile) => tile.y === newY && tile.x === startX);
+          if (updateTileIndex !== -1) {
+            const tileDetails = tileLookUpById(tileSelected);
+            newTileSet[updateTileIndex] = { x: longPressStart.x, y: newY, tileKey: tileSelected, layer: tileDetails.layer };
+          }
+        }
+        setLevelTiles(newTileSet);
+      }
+    }
+    clearTimeout(longPressTimer);
+  };
+
+  return levelTiles.map((tile, i) => {
+    const key = `${tile.x}-${tile.y}-${i}`;
+    let tileDetail = dungeonDetails.dungeonTileKey.find(tileKey => tileKey.id === tile.tileKey);
+    if(!tileDetail) {
+      tileDetail = dungeonDetails.doorwayKey.find(tileKey => tileKey.id === tile.tileKey);
+    }
+    return (
+      <div 
+        key={key} 
+        style={{
+          backgroundImage: tileDetail && `url(${dungeonTilesSheet})`,
+          backgroundPosition: tileDetail && `-${tileDetail.x / pixelsPerTile * 100}% -${tileDetail.y / pixelsPerTile * 100}%`,
+          backgroundSize: `${dungeonDetails.spriteSheetSize.x}% ${dungeonDetails.spriteSheetSize.y}%`,
+          height: `${pixelsPerTile}px`,
+          width: `${pixelsPerTile}px`,
+          transform: `scale(${level.zoomSize})`,
+        }}
+        onClick={() => handleTileClick(tile.x, tile.y)}
+        onMouseUp={() => handleMouseUp(tile.x, tile.y)}
+        onMouseDown={(e) => handleMouseDown(tile.x, tile.y)}
+      >
+      </div>
+    )
+  })
 };
 
 const TilePanel = ({tileSelected, handleTileButtonClick}) => {
@@ -405,7 +445,7 @@ const TilePanel = ({tileSelected, handleTileButtonClick}) => {
         />
 
         <TileListHeader 
-          title="Objects"
+          title="Details"
           showList={showObjectsList}
           setShowList={setShowObjectsList}
         />
@@ -422,7 +462,6 @@ const TilePanel = ({tileSelected, handleTileButtonClick}) => {
     </div>
   );
 };
-
 
 const TileListHeader = ({
   title, 
