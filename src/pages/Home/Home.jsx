@@ -45,7 +45,6 @@ export const Home = () => {
 // pottery
 
 //BUGS:
-// start position not loading from json file
 // player defsult facing after interaction
 
 //TO DO:
