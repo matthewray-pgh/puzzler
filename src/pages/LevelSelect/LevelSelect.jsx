@@ -10,6 +10,8 @@ export const LevelSelect = () => {
     {id: 1, image: null, file: 'levelOne'}, 
     {id: 2, image: null, file: 'levelTwo'},
     {id: 3, image: null, file: 'levelThree'},
+    {id: 4, image: null, file: 'levelChatGPT'},
+    {id: 'TEST', image: null, file: 'levelTest'},
   ];
 
   return (
