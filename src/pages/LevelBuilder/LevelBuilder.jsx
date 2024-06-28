@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useMemo} from 'react';
+import React, {useState, useCallback, useRef, useEffect } from 'react';
 
 import { Header } from '../../components/Header.jsx';
 import './LevelBuilder.scss';
@@ -6,117 +6,82 @@ import './LevelBuilder.scss';
 import dungeonDetails from "../../assets/dungeon.json"
 import dungeonTilesSheet from "../../assets/images/DungeonTiles.png";
 import torchSheet from "../../assets/images/torch-Sheet.png";
-import arrow from "../../assets/images/arrow.png";
 
-import { tileLayer, tileState } from "./LevelBuilderConstants.js";
+import { tileLayer } from "./LevelBuilderConstants.js";
 import { useTile } from "../../hooks/useTile";
+
+import { ConfigurationsModal } from './components/ConfigurationsModal.jsx';
+import { TilePanel } from './components/TilePanel.jsx'
 
 const pixelsPerTile = 32;
 
 export const LevelBuilder = () => {
-  const [level, setLevel] = useState({x: '', y: '', zoomSize: 1});
-  const [mapDimensions, setMapDimensions] = useState({width: 0, height: 0});
-  const [tileDimensions, setTileDimensions] = useState({width: 0, height: 0});
-  const [columnCount, setColumnCount] = useState(0);
-
-  const [levelTiles, setLevelTiles] = useState([]);
   
-  const [tileSelected, setTileSelected] = useState('');
+  const workAreaRef = useRef(null);
+  const [drawDimensions, setDrawDimensions] = useState({x: 10, y: 10});
+  useEffect(() => {
+    const element = workAreaRef.current;
+    let dimensions = {x: 0, y: 0};
+    dimensions.x = Math.floor(element.getBoundingClientRect().width / pixelsPerTile) - 1;
+    dimensions.y = Math.floor(element.getBoundingClientRect().height / pixelsPerTile) - 1;
+    setDrawDimensions(dimensions);
+    setLevel({x: dimensions.x, y: dimensions.y, zoomSize: 1});
+  }, []);
+
+  const [level, setLevel] = useState({x: 0, y: 0, zoomSize: 1});
+  const [levelTiles, setLevelTiles] = useState([]);
+
+  const [map, setMap] = useState({x: 0, y: 0});
+  
+  const [tileSelected, setTileSelected] = useState(null);
 
   const [baseMap, setBaseMap] = useState([]);
   const [collisionMap, setCollisionMap] = useState([]);
   const [objectsMap, setObjectsMap] = useState([]);
 
-  const [showConfirm, setShowConfirm] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showGrid, setShowGrid] = useState(true);
+  const [showBase, setShowBase] = useState(true);
+  const [showCollision, setShowCollision] = useState(true);
+  const [showObject, setShowObject] = useState(true);
 
   const { tileLookUpById, baseLookUpByCoordinates } = useTile(dungeonDetails);
 
-  // generates base map based on initial width and height
-  const buildMap = (x, y) => {
-    //check if levelTiles is empty
-    let map = [];
-    Array.from({length: y}).map((_, i) => {
-      return (
-        Array.from({length: x}).map((_, j) => {
-          return (
-            map.push({x: i, y: j, 
-              tileKey:(i + j) % 2 === 0 ? 'c1' : 'c2', 
-              layer: tileLayer.BASE
-            })
-          )
-        })
-      )
-    })
-    setBaseMap(map);
-    return map;
-  };
-
   const handleInputChange = (e) => {
     const {name, value} = e.target;
-    setLevel({...level, [name]: value});
+    setDrawDimensions({...drawDimensions, [name]: parseInt(value)});
   };
 
-  const handleTileClick = useCallback((x, y) => {
-    //get tile details
-    const tileDetails = tileLookUpById(tileSelected);
-    const updateTileIndex = levelTiles.findIndex(tile => tile.x === x && tile.y === y);
-    if(tileSelected === 'reset') {
-      const previousTile = baseLookUpByCoordinates(x, y, baseMap);
-      const newTileSet = [...levelTiles];
-      newTileSet[updateTileIndex] = {x: x, y: y, tileKey: previousTile.id, layer: tileLayer.BASE};
-      setLevelTiles(newTileSet);
-    }
-    else if (tileSelected !== '') {
-      const newTile = {x: x, y: y, tileKey: tileSelected, layer: tileDetails.layer};
-      const newTileSet = [...levelTiles];
-      newTileSet[updateTileIndex] = newTile;
-      setLevelTiles(newTileSet);
-    }
-    // eslint-disable-next-line
-  },[baseLookUpByCoordinates, levelTiles, tileLookUpById, tileSelected]);
-
-  const generateMap = () => {
-    setMapDimensions({width: level.zoomSize * pixelsPerTile * level.x, height: level.zoomSize * pixelsPerTile * level.y});
-    setTileDimensions({width: level.zoomSize * pixelsPerTile, height: level.zoomSize * pixelsPerTile});
-    setLevelTiles(buildMap(level.x, level.y));
-    setColumnCount(level.x);
-    // if(levelTiles.length > 0) {
-    //   setShowConfirm(true);
-    // } else {
-    //   setLevelTiles(buildMap(level.x, level.y));
-    // }
-  };
-
-  const generateJson = useCallback(() => {
+  const downloadJson = useCallback(() => {
     // level type
     const type = "dungeon.json";
     // level details
     const details = {
-      width: parseInt(level.x), 
-      height: parseInt(level.y)
+      width: parseInt(map.x), 
+      height: parseInt(map.y)
     };
 
     //filter tiles with no tileKey
     const filteredTiles = levelTiles.filter(obj => obj.tileKey !== undefined);
     
     //generate base map
-    const base = filteredTiles.map((tile) => {
-      let baseTile = tile;
-      if(tile.layer !== "base") {
-        baseTile = baseLookUpByCoordinates(tile.x, tile.y, baseMap);
-      }
-      return {x: tile.x, y: tile.y, tileKey: baseTile.tileKey};
-    });
+    // const base = filteredTiles.map((tile) => {
+    //   let baseTile = tile;
+    //   if(tile.layer !== "base") {
+    //     baseTile = baseLookUpByCoordinates(tile.x, tile.y, baseMap);
+    //   }
+    //   return {x: tile.x, y: tile.y, tileKey: baseTile.tileKey};
+    // });
 
     //generate collision map
-    const collision = filteredTiles.filter((tile) => tile.layer === tileLayer.MAIN).map((tile) => { 
-      return {x: tile.x, y: tile.y, tileKey: tile.tileKey}});
+    // const collision = filteredTiles.filter((tile) => tile.layer === tileLayer.COLLISION).map((tile) => { 
+    //   return {x: tile.x, y: tile.y, tileKey: tile.tileKey}});
     const json = {
       mapType: type,
       level: details, 
-      baseMap: base, 
-      collisionMap: collision
+      baseMap: baseMap, 
+      collisionMap: collisionMap,
+      objectsMap: objectsMap,
     };
 
     // create json file and download
@@ -142,6 +107,7 @@ export const LevelBuilder = () => {
     setLevel({x: '', y: '', zoomSize: 1});
     setBaseMap([]); 
     setCollisionMap([]); 
+    setObjectsMap([]);
     setLevelTiles([]); 
   }, []);
 
@@ -163,8 +129,55 @@ export const LevelBuilder = () => {
       setLevelTiles(newLevel);
       return;
     }
-    setLevelTiles(buildMap(width, height));
     setShowUploadModal(false);
+  };
+
+  const handleFileChange = (e) => {
+    // resetForm();
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      const json = JSON.parse(text);
+      const currentLevel = level;
+      currentLevel.x = json.level.width;
+      currentLevel.y = json.level.height;
+      setLevel(currentLevel);
+      // setWidth(json.level.width);
+      // setHeight(json.level.height);
+      setBaseMap(JSON.stringify(json.baseMap));
+      setCollisionMap(JSON.stringify(json.collisionMap));
+    };
+    reader.readAsText(file);  
+  };
+
+  const handleSaveClick = () => {
+    downloadJson();
+  };
+
+  const handleCancelClick = () => {
+    setShowUploadModal(false);
+  };
+
+  const handleResetClick = () => {
+    resetMap();
+  };
+
+  const handleUpdateGridClick = () => {
+    if(drawDimensions.x > 0 && drawDimensions.y > 0){
+      updateLevelDimension(drawDimensions.x, drawDimensions.y);
+    }
+    else {
+      setDrawDimensions({x: level.x, y: level.y});
+    }
+  };
+
+  const handleResetDimensionClick = () => {
+    setDrawDimensions({x: level.x, y: level.y});
+  };
+
+  const updateLevelDimension = (x, y) => {
+    setLevel((prev) => ({...prev, x: x, y: y}));
   };
 
   return (
@@ -178,50 +191,91 @@ export const LevelBuilder = () => {
         ]}
       />
 
-      <section className="admin__generate">
-        <section className="admin__generate--form">
-          <div>
-            <label htmlFor="x" className="admin__label">Width [x]</label>
-            <input 
-              name="x" 
-              type="number" 
-              placeholder="Enter Width"
-              className="admin__input"
-              onChange={(e) => handleInputChange(e)} 
-              value={level.x} 
-            />
-          </div>
-          <div>
-            <label htmlFor="y" className="admin__label">Height [y]</label>
-            <input 
-              name="y" 
-              type="number" 
-              placeholder="Enter Height" 
-              className="admin__input"
-              onChange={(e) => handleInputChange(e)}
-              value={level.y} 
-            />
-          </div>
-          <div>
-            <label htmlFor="zoomSize" className="admin__label">Zoom [pixel size]</label>
-            <select 
-              name="zoomSize" 
-              onChange={(e) => handleInputChange(e)}
-              value={level.zoomSize}
-            >
-              <option value={0.5}>16 (x.5)</option>
-              <option value={1}>32 (x1)</option>
-              <option value={2}>64 (x2)</option>
-              <option value={3}>96 (x3)</option>
-            </select>
-          </div>
-          <button className="admin__button" onClick={generateMap}>Generate Map</button>
-          <button className="admin__button" onClick={generateJson}>Save Level</button>
-          <button className="admin__button"onClick={()=>{setShowUploadModal(true)}}>Upload Level</button>
-          <span></span>
-          <button className="admin__button" onClick={resetMap}>Reset Map</button>
-        </section>
+      <section className="admin__controls">
+        {/* row 1 */}
+        <h3>Controls</h3>
+        <span />
+        <button className="admin__button" onClick={() => {setShowUploadModal(true)}}>Upload</button>
+        <button className="admin__button" onClick={handleResetClick}>Reset Level</button>
+        <button className="admin__button" onClick={handleSaveClick}>Save</button>
 
+        {/* row 2 */}
+        <h3>Grid Dimensions</h3>
+        <div>
+          <label htmlFor="x">Width</label>
+          <input 
+            name="x" 
+            type="number" 
+            placeholder="Enter Width"
+            className="admin__input"
+            value={drawDimensions.x}
+            onChange={(e) => handleInputChange(e)}
+          />
+        </div>
+        <div>
+          <label htmlFor="y">Height</label>
+          <input 
+            name="y" 
+            type="number" 
+            placeholder="Enter Height"
+            className="admin__input"
+            value={drawDimensions.y}
+            onChange={(e) => handleInputChange(e)}
+          />
+        </div>
+        <button className="admin__button" onClick={() => handleResetDimensionClick()}>Reset Dimensions</button>
+        <button className="admin__button" 
+          onClick={() => handleUpdateGridClick()}
+          disabled={level.x === drawDimensions.x && level.y === drawDimensions.y}>
+            Update Grid
+        </button>
+        
+        {/* row 3 */}
+        <h3>Filters</h3>
+        <div>
+          <input 
+            type="checkbox" 
+            name="showGrid" 
+            checked={showGrid}
+            onChange={(e) => setShowGrid(!showGrid)}
+            className="admin__checkbox" 
+          />
+          <label htmlFor="showGrid" className="admin__checkbox--label">Show Grid</label>
+        </div>
+        <div>
+          <input 
+            type="checkbox" 
+            name="showBase" 
+            checked={showBase} 
+            onChange={(e) => setShowBase(!showBase)}
+            className="admin__checkbox" 
+          />
+          <label htmlFor="showBase" className="admin__checkbox--label">Show Base</label>
+        </div>
+        <div>
+          <input 
+            type="checkbox" 
+            name="showCollision" 
+            checked={showCollision}
+            onChange={(e) => setShowCollision(!showCollision)}
+            className="admin__checkbox" 
+          />
+          <label htmlFor="showCollision" className="admin__checkbox--label">Show Collision</label>
+        </div>
+        <div>
+          <input 
+            type="checkbox" 
+            name="showObject"
+            checked={showObject}
+            onChange={(e) => setShowObject(!showObject)}
+            className="admin__checkbox" 
+          />
+          <label htmlFor="showObject" className="admin__checkbox--label">Show Object</label>
+        </div>
+        
+      </section>
+
+      <section className="admin__generate">
         <section className="admin__map--preview">
           
           <TilePanel 
@@ -229,301 +283,376 @@ export const LevelBuilder = () => {
             handleTileButtonClick={handleTileButtonClick}
           />
           
-          <div className="panel">
-            <div className="panel__map-container">
-              <div id="map" className="panel__map" style={{
-                margin: '30px', 
-                height: `${level.zoomSize * pixelsPerTile * level.y}px`,
-                width: `${level.zoomSize * pixelsPerTile * level.x}px`,
-                display: 'grid', 
-                gridTemplateColumns: `repeat(${level.x}, ${pixelsPerTile * level.zoomSize}px)`,
-              }}>
-                {Tiles}
-                <Tiles 
-                  level={level}
-                  levelTiles={levelTiles}
-                  tileSelected={tileSelected}
-                  setLevelTiles={setLevelTiles}
-                  tileLookUpById={tileLookUpById}
-                  handleTileClick={handleTileClick}
-                />
+          <div id="workArea" className="panel" ref={workAreaRef}>
+            <section className="admin__map-details" >
+              <div id="admin-map-details-dimensions"
+                className="admin__map-details--dimensions">
+                Grid Dimensions [x]:{level.x} [y]:{level.y}
+              </div>
+
+              <div id="admin-map-details-map"
+                className="admin__map-details--dimensions">
+                Map Dimensions [x]:{map.x} [y]:{map.y}
               </div>
               
-              {/* <div className="panel__map" style={{
-                width: `${mapDimensions.width}px`,
-                height: `${mapDimensions.height}px`,
-                display: 'grid', 
-                gridTemplateColumns: `repeat(${columnCount}, ${pixelsPerTile * level.zoomSize}px)`,
-              }}>
-                {levelTiles.length > 0 && levelTiles.map((tile, i) => {
-                  return (
-                    <div 
-                      style={{
-                        width: `${tileDimensions.width}px`,
-                        height: `${tileDimensions.height}px`,
-                        border: '1px solid rgba(255, 255, 255, 0.25)', 
-                      }} 
-                      key={i}
-                      onClick={() => {
-                        console.log('clicked x:', tile.x, ', y:', tile.y);
-                        handleTileClick(tile.x, tile.y);
-                      }}
-                    >
-                      <div>{tile.x}</div> 
-                      <div>{tile.y}</div>
-                    </div>
-                  );
-                })}
-              </div> */}
+              <div id="admin-map-details-zoom" className="admin__map-details--settings">
+                {/* Needs further thought about how to implement */}
+                {/* <label >Zoom</label>
+                <select 
+                  name="zoomSize" 
+                  onChange={(e) => handleInputChange(e)}
+                  value={level.zoomSize}
+                >
+                  <option value={0.5}>16 (x.5)</option>
+                  <option value={1}>32 (x1)</option>
+                  <option value={2}>64 (x2)</option>
+                  <option value={3}>96 (x3)</option>
+                </select> */}
+              </div>
+            </section>
+
+            <div className="panel__map-container">
+              {level.x <= 0 || level.y <= 0 ? "...loading" :
+                <>
+                  <WorkspaceLayer
+                    layerName="base"
+                    pixelsPerTile={pixelsPerTile} 
+                    level={level}
+                    tiles={baseMap}
+                    showLayer={showBase}
+                  />   
+                  <WorkspaceLayer
+                    layerName="collision"
+                    pixelsPerTile={pixelsPerTile} 
+                    level={level}
+                    tiles={collisionMap}
+                    showLayer={showCollision}
+                  /> 
+                  <WorkspaceLayer
+                    layerName="objects"
+                    pixelsPerTile={pixelsPerTile} 
+                    level={level}
+                    tiles={objectsMap}
+                    showLayer={showObject}
+                  /> 
+                  <InteractionLayer
+                    level={level} 
+                    pixelsPerTile={pixelsPerTile} 
+                    tileSelected={tileSelected}
+                    baseMap={baseMap}
+                    setBaseMap={setBaseMap}
+                    collisionMap={collisionMap}
+                    setCollisionMap={setCollisionMap}
+                    objectsMap={objectsMap}
+                    setObjectsMap={setObjectsMap}
+                    showGrid={showGrid}
+                    setMap={setMap}
+                  />  
+                </>
+              }
             </div>
           </div>
         </section>
       </section>
     </div>
-    <GenerateConfirm showConfirm={showConfirm} setShowConfirm={setShowConfirm} generateJson={generateJson}/>
-    <UploadLevelFormModal 
+
+    <ConfigurationsModal 
+      level={level}
+      baseMap={baseMap}
+      collisionMap={collisionMap}
       showUploadModal={showUploadModal} 
       setShowUploadModal={setShowUploadModal}
       handleMapCreate={handleMapCreate}
+      handleInputChange={handleInputChange}
+      handleGenerateClick={()=>{}}
+      handleDownloadClick={handleSaveClick}
+      handleCancelClick={handleCancelClick}
+      handleResetClick={handleResetClick}
+      updateLevelDimension={updateLevelDimension}
+      updateBaseMap={setBaseMap}
+      updateCollisionMap={setCollisionMap}
     />
     </>
   );
 };
 
-const Tiles = ({
-  level,
-  levelTiles,
-  tileSelected,
-  setLevelTiles,
-  tileLookUpById,
-  handleTileClick
+const WorkspaceLayer = ({
+  layerName,
+  level, 
+  pixelsPerTile, 
+  tiles=[],
+  showLayer=true,
 }) => {
+  return (
+    showLayer &&
+    <div id={`layer-${layerName}`} className="workspace__layer">
+      <div style={{
+        display: 'grid', 
+        gridTemplateColumns: `repeat(${level.x}, ${pixelsPerTile * level.zoomSize}px)`,
+        }}>
+          {[...Array(level.y)].map((_, i) => {
+            return (
+              [...Array(level.x)].map((_, j) => {
+                let tileExist = tiles.find((tile) => tile.x === j && tile.y === i);
+                if(tileExist) {
+                  let tileDetail = dungeonDetails.dungeonTileKey.find(tileKey => tileKey.id === tileExist.tileKey);
+                  if(!tileDetail) {
+                    tileDetail = dungeonDetails.doorwayKey.find(tileKey => tileKey.id === tileExist.tileKey);
+                  }
+                  return (
+                    <div key={j}
+                      style={{
+                        backgroundImage: tileDetail && `url(${dungeonTilesSheet})`,
+                        backgroundPosition: tileDetail && `-${tileDetail.x / pixelsPerTile * 100}% -${tileDetail.y / pixelsPerTile * 100}%`,
+                        backgroundSize: `${dungeonDetails.spriteSheetSize.x}% ${dungeonDetails.spriteSheetSize.y}%`,
+                        height: `${pixelsPerTile}px`,
+                        width: `${pixelsPerTile}px`,
+                        transform: `scale(${level.zoomSize})`,
+                      }}
+                    >
+                    </div>
+                  )
+                }
+                else {
+                  return (
+                  <div key={j}
+                    className='workspace__cell'
+                    style={{
+                      height: `${pixelsPerTile - 2}px`,
+                      width: `${pixelsPerTile - 2}px`,
+                      transform: `scale(${level.zoomSize})`,
+                    }}>
+                  </div>
+                )
+              }
+            })
+          )
+          })} 
+      </div>
+    </div>
+  )
+};
+
+const InteractionLayer = ({
+  level, 
+  pixelsPerTile, 
+  tileSelected,
+  baseMap,
+  setBaseMap,
+  collisionMap,
+  setCollisionMap,
+  objectsMap,
+  setObjectsMap,
+  showGrid=true,
+  setMap,
+}) => {
+  const [highlightedTiles, setHighlightedTiles] = useState([]);
+  const [longPressStart, setLongPressStart] = useState({ x: '', y: '' });
+
   let longPressTimer;
-  let longPressStart = {x: '', y: ''};
-  let longPressEnd = {x: '', y: ''};
+
+  const updateMaxValues = (data) => {
+    const maxDataX = Math.max(...data.map(item => item.x));
+    const maxDataY = Math.max(...data.map(item => item.y));
+
+    const maxBaseX = Math.max(...baseMap.map(item => item.x));
+    const maxBaseY = Math.max(...baseMap.map(item => item.y));
+
+    const maxCollisionX = Math.max(...collisionMap.map(item => item.x));
+    const maxCollisionY = Math.max(...collisionMap.map(item => item.y));
+
+    const maxObjectsX = Math.max(...objectsMap.map(item => item.x));
+    const maxObjectsY = Math.max(...objectsMap.map(item => item.y));
+
+    const maxX = Math.max(maxDataX, maxBaseX, maxCollisionX, maxObjectsX);
+    const maxY = Math.max(maxDataY, maxBaseY, maxCollisionY, maxObjectsY);
+
+    setMap({x: maxX, y: maxY});
+  }
+
+  const updateTileset = (prevTileset, x, y, tileKey) => {
+    const tileIndex = prevTileset.findIndex(tile => tile.x === x && tile.y === y);
+    if(tileIndex !== -1) {
+      const newTileset = [...prevTileset];
+      newTileset[tileIndex] = {x: x, y: y, tileKey: tileKey};
+      updateMaxValues(newTileset);
+      return newTileset;
+    }
+    else {
+      updateMaxValues([...prevTileset, {x: x, y: y, tileKey: tileKey}]);
+      return [...prevTileset, {x: x, y: y, tileKey: tileKey}];
+    }
+  };
+
+  const resetTileset = (prevTileset, x, y) => {
+    const tileIndex = prevTileset.findIndex(tile => tile.x === x && tile.y === y);
+    if(tileIndex !== -1) {
+      const newTileset = [...prevTileset];
+      newTileset.splice(tileIndex, 1);
+      updateMaxValues(newTileset);
+      return newTileset;
+    }
+    updateMaxValues(prevTileset);
+    return prevTileset;
+  };
   
   const handleMouseDown = (x, y) => {
     longPressTimer = setTimeout(() => {
-      longPressStart = {x: x, y: y};
-    }, 500);
+      setLongPressStart({x: x, y: y});
+      setHighlightedTiles([{ x: x, y: y }]);
+    }, 250);
   };
 
-  const handleMouseUp = (x, y) => {
-    if(longPressStart.x !== '' && longPressStart.y !== '') {
-      longPressEnd = {x: x, y: y};
-
-      let diffX = longPressEnd.x - longPressStart.x;
-      let diffY = longPressEnd.y - longPressStart.y;
-
-      if (diffX !== 0) {
-        const newTileSet = [...levelTiles];
-        for (let i = 0; i <= Math.abs(diffX); i++) {
-          const newX = longPressStart.x + (diffX > 0 ? i : -i);
-          const startY = longPressStart.y;
-          const updateTileIndex = newTileSet.findIndex((tile) => tile.x === newX && tile.y === startY);
-          if (updateTileIndex !== -1) {
-            newTileSet[updateTileIndex] = { x: newX, y: longPressStart.y, tileKey: tileSelected, layer: tileLayer.MAIN };
-          }
-        }
-        setLevelTiles(newTileSet);
-      }
-
-      if (diffY !== 0) {
-        const newTileSet = [...levelTiles];
-        for (let i = 0; i <= Math.abs(diffY); i++) {
-          const newY = longPressStart.y + (diffY > 0 ? i : -i);
-          const startX = longPressStart.x;
-          const updateTileIndex = newTileSet.findIndex((tile) => tile.y === newY && tile.x === startX);
-          if (updateTileIndex !== -1) {
-            const tileDetails = tileLookUpById(tileSelected);
-            newTileSet[updateTileIndex] = { x: longPressStart.x, y: newY, tileKey: tileSelected, layer: tileDetails.layer };
-          }
-        }
-        setLevelTiles(newTileSet);
-      }
-    }
+  const handleClick = (x, y) => {
     clearTimeout(longPressTimer);
+    setHighlightedTiles([]);
+    setLongPressStart({x: '', y: ''});
+
+    if(tileSelected === '' || tileSelected === null) {
+      return;
+    }
+    
+    if(tileSelected === 'reset') {
+      let newBaseMap = resetTileset(baseMap, x, y);;
+      let newCollisionMap = resetTileset(collisionMap, x, y);
+      let newObjectsMap = resetTileset(objectsMap, x, y);
+
+      setBaseMap(newBaseMap);
+      setCollisionMap(newCollisionMap);
+      setObjectsMap(newObjectsMap);
+    }
+    else if (tileSelected !== '') {
+      let newBaseMap = baseMap;
+      let newCollisionMap = collisionMap;
+      let newObjectsMap = objectsMap;
+      const tileDetails = dungeonDetails.dungeonTileKey.find(tileKey => tileKey.id === tileSelected);
+
+      if(!tileDetails) {
+        console.error('Doorways and Details not working yet');
+        return;
+      };
+      
+      switch (tileDetails.layer) {
+        case tileLayer.BASE:
+          newBaseMap = updateTileset(baseMap, x, y, tileSelected);
+          break;
+        case tileLayer.COLLISION:
+          newCollisionMap = updateTileset(collisionMap, x, y, tileSelected);
+          break;
+        case tileLayer.OBJECTS:
+          newObjectsMap = updateTileset(objectsMap, x, y, tileSelected);
+          break;
+        default:
+          break;
+      }
+
+      setBaseMap(newBaseMap);
+      setCollisionMap(newCollisionMap);
+      setObjectsMap(newObjectsMap);
+    }
   };
 
-  return levelTiles.map((tile, i) => {
-    const key = `${tile.x}-${tile.y}-${i}`;
-    let tileDetail = dungeonDetails.dungeonTileKey.find(tileKey => tileKey.id === tile.tileKey);
-    if(!tileDetail) {
-      tileDetail = dungeonDetails.doorwayKey.find(tileKey => tileKey.id === tile.tileKey);
+  const handleMouseUp = () => {
+    clearTimeout(longPressTimer);
+
+    if(tileSelected === '' || tileSelected === null) {
+      return;
     }
-    return (
-      <div 
-        key={key} 
-        style={{
-          backgroundImage: tileDetail && `url(${dungeonTilesSheet})`,
-          backgroundPosition: tileDetail && `-${tileDetail.x / pixelsPerTile * 100}% -${tileDetail.y / pixelsPerTile * 100}%`,
-          backgroundSize: `${dungeonDetails.spriteSheetSize.x}% ${dungeonDetails.spriteSheetSize.y}%`,
-          height: `${pixelsPerTile}px`,
-          width: `${pixelsPerTile}px`,
-          transform: `scale(${level.zoomSize})`,
-        }}
-        onClick={() => handleTileClick(tile.x, tile.y)}
-        onMouseUp={() => handleMouseUp(tile.x, tile.y)}
-        onMouseDown={(e) => handleMouseDown(tile.x, tile.y)}
-      >
-      </div>
-    )
-  })
-};
 
-const TilePanel = ({tileSelected, handleTileButtonClick}) => {
-  const [showFloorList, setShowFloorList] = useState(false);
-  const [showWallsList, setShowWallsList] = useState(false);
-  const [showDoorwaysList, setShowDoorwaysList] = useState(false);
-  const [showObjectsList, setShowObjectsList] = useState(false);
+    if(highlightedTiles.length > 0) {
+      // add bulk tile updates here
+      let newBaseMap = baseMap;
+      let newCollisionMap = collisionMap;
+      let newObjectsMap = objectsMap;
 
-  const baseLayerTiles = useMemo(() => {
-    return dungeonDetails.dungeonTileKey.filter((x) => x.layer === tileLayer.BASE)
-  }, []);
+      if(tileSelected === 'reset') {
+        highlightedTiles.forEach((tile) => {
+          newBaseMap = resetTileset(newBaseMap, tile.x, tile.y);;
+          newCollisionMap = resetTileset(newCollisionMap, tile.x, tile.y);
+          newObjectsMap = resetTileset(newObjectsMap, tile.x, tile.y);
+        });
+      }
+      else if (tileSelected !== '') {
+        highlightedTiles.forEach((tile) => {
+          const tileDetails = dungeonDetails.dungeonTileKey.find(tileKey => tileKey.id === tileSelected);
 
-  const collisionLayerTiles = useMemo(() => {
-    return dungeonDetails.dungeonTileKey.filter((x) => x.layer === tileLayer.MAIN)
-  }, []);
+          switch (tileDetails.layer) {
+            case tileLayer.BASE:
+              newBaseMap = updateTileset(newBaseMap, tile.x, tile.y, tileSelected);
+              break;
+            case tileLayer.COLLISION:
+              newCollisionMap = updateTileset(newCollisionMap, tile.x, tile.y, tileSelected);
+              break;
+            case tileLayer.OBJECTS:
+              newObjectsMap = updateTileset(newObjectsMap, tile.x, tile.y, tileSelected);
+              break;
+            default:
+              break;
+          }
+        });
+      }
+      setBaseMap(newBaseMap);
+      setCollisionMap(newCollisionMap);
+      setObjectsMap(newObjectsMap);
+    }
+    
+    setHighlightedTiles([]);
+    setLongPressStart({x: '', y: ''});
+  };
 
-  const doorwayTiles = useMemo(() => {
-    return dungeonDetails.doorwayKey.filter((x) => x.state === tileState.STATIC)
-  }, []);
+  const handleMouseEnter = (x, y) => {
+    if(longPressStart.x !== '' && longPressStart.y !== '') {
+      const startX = longPressStart.x;
+      const startY = longPressStart.y;
+      const endX = x;
+      const endY = y;
+
+      // Calculate highlighted tiles based on drag
+      const newHighlightedTiles = [];
+      for (let i = Math.min(startY, endY); i <= Math.max(startY, endY); i++) {
+        for (let j = Math.min(startX, endX); j <= Math.max(startX, endX); j++) {
+          newHighlightedTiles.push({ x: j, y: i });
+        }
+      }
+      setHighlightedTiles(newHighlightedTiles);
+    }
+  };
 
   return (
-    <div className="panel">
-      <h3>TILES</h3>
-
-      <div style={{padding: '10px'}}>
-        <button 
-          className={`admin__button ${'reset' === tileSelected ? "current-image-button" : "image-button"}`}
-          onClick={() => handleTileButtonClick('reset')}>
-            <div style={{border: '3px solid #fff', height: '26px', width: '26px'}}></div>
-            clear cell
-        </button>
-
-        <div className="panel__collapse-header" onClick={() => {
-            setShowFloorList(!showFloorList)
-          }} >
-          <h3 className="panel__collapse-header--title">Floor</h3>
-          <div className="panel__collapse-header--icon">
-            <img src={arrow} alt="arrow" 
-              className={showFloorList ? "panel__collapse-header--icon-up" : "panel__collapse-header--icon-down"}/>
-          </div>
-        </div>
-        <TileButtonList 
-          tileSpriteSheet={dungeonTilesSheet}
-          layerTiles={baseLayerTiles}
-          handleClick={handleTileButtonClick}
-          tileSelected={tileSelected}
-          showList={showFloorList}
-        />
-
-        <TileListHeader 
-          title="Walls"
-          showList={showWallsList}
-          setShowList={setShowWallsList}
-        />
-        <TileButtonList 
-          tileSpriteSheet={dungeonTilesSheet}
-          layerTiles={collisionLayerTiles}
-          handleClick={handleTileButtonClick}
-          tileSelected={tileSelected}
-          showList={showWallsList}
-        />
-
-        <TileListHeader
-          title="Doorways"
-          showList={showDoorwaysList}
-          setShowList={setShowDoorwaysList}
-        />
-        <TileButtonList
-          tileSpriteSheet={dungeonTilesSheet}
-          layerTiles={doorwayTiles}
-          handleClick={handleTileButtonClick}
-          tileSelected={tileSelected}
-          showList={showDoorwaysList}
-        />
-
-        <TileListHeader 
-          title="Details"
-          showList={showObjectsList}
-          setShowList={setShowObjectsList}
-        />
-        <div>
-          {showObjectsList &&
-          <TileButton 
-            tile={{id: 'torch', x: 0, y: 0, detail: 'Torch'}}
-            tileSpriteSheet={torchSheet}
-            handleClick={handleTileButtonClick}
-            tileSelected={tileSelected}
-          />}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const TileListHeader = ({
-  title, 
-  showList, 
-  setShowList
-}) => {
-  return (
-    <div className="panel__collapse-header" onClick={() => {
-      setShowList(!showList)
-    }} >
-    <h3 className="panel__collapse-header--title">{title}</h3>
-    <div className="panel__collapse-header--icon">
-      <img src={arrow} alt="arrow" 
-        className={showList ? "panel__collapse-header--icon-up" : "panel__collapse-header--icon-down"}/>
-    </div>
-  </div>
-)};
-
-const TileButtonList = ({
-  tileSpriteSheet, 
-  layerTiles, 
-  handleClick, 
-  tileSelected, 
-  showList
-}) => {
-  return (
-    showList &&
-    layerTiles.map((tile, i) => {
-      return (
-        tile.detail &&
-        <TileButton 
-          key={i}
-          tile={tile}
-          tileSpriteSheet={tileSpriteSheet}
-          handleClick={handleClick}
-          tileSelected={tileSelected}
-        />
-      )
-    })
-  );
-};
-
-const TileButton = ({
-  tile, 
-  tileSpriteSheet, 
-  handleClick, 
-  tileSelected
-}) => {
-  return (
-    <button 
-      className={`admin__button ${tile.id === tileSelected ? "current-image-button" : "image-button"}`}
-      onClick={() => handleClick(tile.id)}
-    >
+    <div id="layer-interaction" className="workspace__layer">
       <div style={{
-        backgroundImage: `url(${tileSpriteSheet})`,
-        backgroundPosition: `-${tile.x}px -${tile.y}px`,
-        height: '32px',
-        width: '32px',
-      }}></div>
-      {tile.detail}
-    </button>
-  );
+        display: 'grid', 
+        gridTemplateColumns: `repeat(${level.x}, ${pixelsPerTile * level.zoomSize}px)`,
+        }}>
+          {[...Array(level.y)].map((_, i) => {
+            return (
+              [...Array(level.x)].map((_, j) => {
+                return (
+                <div key={j} 
+                  className="workspace__cell--interaction"
+                  style={{
+                    height: `${pixelsPerTile - 2}px`,
+                    width: `${pixelsPerTile - 2}px`,
+                    transform: `scale(${level.zoomSize})`,
+                    backgroundColor: highlightedTiles.find((tile) => tile.x === j && tile.y === i) 
+                      ? 'rgba(255, 255, 255, 0.2)' 
+                      : 'transparent',
+                    borderColor: showGrid ? 'rgba(255, 255, 255, 0.3)' : 'transparent',
+                  }}
+                  onClick={() => handleClick(j, i)}  
+                  onMouseUp={() => handleMouseUp()}
+                  onMouseDown={(e) => handleMouseDown(j, i)}
+                  onMouseEnter={() => handleMouseEnter(j, i)}
+                >
+                  {/* {i},{j} */}
+                </div>
+              )
+            })
+          )
+          })}
+      </div>
+    </div>
+  )
 };
 
 const GenerateConfirm = ({showConfirm, setShowConfirm, generateJson}) => {
@@ -542,115 +671,6 @@ const GenerateConfirm = ({showConfirm, setShowConfirm, generateJson}) => {
         <div className="modal__content--button-panel">
           <button className="admin__button" onClick={() => handleConfirm()}>Confirm</button>
           <button className="admin__button" onClick={() => handleCancel()}>Cancel</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const UploadLevelFormModal = ({showUploadModal, setShowUploadModal, handleMapCreate}) => {
-  const [width, setWidth] = useState('');
-  const [height, setHeight] = useState('');
-  const [baseMap, setBaseMap] = useState([]);
-  const [collisionMap, setCollisionMap] = useState([]);
-
-  const resetForm = () => {
-    setWidth('');
-    setHeight('');
-    setBaseMap([]);
-    setCollisionMap([]);
-    setShowUploadModal(false);
-  }
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target.result;
-      const json = JSON.parse(text);
-      setWidth(json.level.width);
-      setHeight(json.level.height);
-      setBaseMap(JSON.stringify(json.baseMap));
-      setCollisionMap(JSON.stringify(json.collisionMap));
-    };
-    reader.readAsText(file);
-  }
-
-  const handleUploadClick = () => {
-    handleMapCreate(width, height, baseMap, collisionMap);
-    resetForm();
-  };
-
-  const handleCancelClick = () => {
-    resetForm();
-  };
-
-  return (
-    <div className={`${showUploadModal ? 'modal' : 'hide'}`}>
-      <div className="modal__content">
-        <div className="modal__content--title">Upload Level</div>
- 
-        <section className="admin__upload-form" >
-          <div className="admin__upload-form--side-by-side">
-            <div>
-              <label htmlFor="width" className="admin__label">Width</label>
-              <input 
-                name="width" 
-                type="text" 
-                placeholder="Enter Width"
-                className="admin__input"
-                value={width}
-                onChange={(e) => setWidth(e.target.value)}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="height" className="admin__label">Height</label>
-              <input 
-                name="height" 
-                type="text" 
-                placeholder="Enter Height"
-                className="admin__input"
-                value={height}
-                onChange={(e) => setHeight(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <label htmlFor="baseMap" className="admin__label">Base Map JSON</label>
-          <textarea
-            name="baseMap"
-            placeholder="Enter Base Map JSON"
-            className="admin__input"
-            value={baseMap}
-            onChange={(e) => setBaseMap(e.target.value)}
-          />
-
-          <label htmlFor="collisionMap" className="admin__label">Collision Map JSON</label>
-          <textarea
-            name="collisionMap"
-            placeholder="Enter Collision Map JSON"
-            className="admin__input"
-            value={collisionMap}
-            onChange={(e) => setCollisionMap(e.target.value)}
-          />
-
-          <div>
-            <div className="modal__divider-text">OR</div>
-
-            <label htmlFor="uploadFile" className="admin__label">Upload JSON File</label>
-            <input 
-              type="file" 
-              accept="application/json"  
-              className="admin__input"
-              onChange={(e) => handleFileChange(e)}
-            />
-          </div>
-        </section>
-
-        <div className="modal__content--button-panel">
-          <button className="admin__button" onClick={handleUploadClick}>Upload</button>
-          <button className="admin__button" onClick={handleCancelClick}>Cancel</button>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 export const tileLayer = Object.freeze({
   BASE: "base",
-  MAIN: "collision",
+  COLLISION: "collision",
+  OBJECT: "object",
 });
 
 export const tileState = Object.freeze({
