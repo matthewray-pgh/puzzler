@@ -42,8 +42,8 @@ export const GameLevel = () => {
       import(`../../assets/${fileName}.json`)
         .then((data) => {
           const collisionObjects = data.default.collisionMap.map((block, index) => {
-            const y = block.x * cellSize;
-            const x = block.y * cellSize;
+            const x = block.x * cellSize;
+            const y = block.y * cellSize;
             let tile = tileLookUpById(block.tileKey);
             return { 
               x, 
@@ -160,10 +160,6 @@ export const GameLevel = () => {
   const mobs = useMob(cellSize, TileSize, playerSize, mobsData);
 
   const gameOverRef = useRef(false);
-
-  useEffect(() => {
-    console.log(levelDetails);
-  }, [levelDetails]);
 
   useEffect(() => {
     if(isLoading) return;
@@ -644,8 +640,8 @@ export const GameLevel = () => {
     if(!levelDetails.baseMap || (levelDetails.baseMap && levelDetails.baseMap.length <= 0)) return;
     levelDetails.baseMap.map((block, index) => {
       //transpose x annd y for rendering
-      const y = block.x * cellSize;
-      const x = block.y * cellSize;
+      const x = block.x * cellSize;
+      const y = block.y * cellSize;
       let tile = tileLookUpById(block.tileKey);
       return ctx.drawImage(spriteSheet, tile.x, tile.y, TileSize, TileSize, x, y, cellSize, cellSize);
     });
@@ -655,8 +651,8 @@ export const GameLevel = () => {
     if(!levelDetails.collisionMap || (levelDetails.collisionMap && levelDetails.collisionMap.length === 0)) return;
     // eslint-disable-next-line array-callback-return
     levelDetails.collisionMap.map((block, index) => {
-      const y = block.x * cellSize;
-      const x = block.y * cellSize;
+      const x = block.x * cellSize;
+      const y = block.y * cellSize;
       let tile = tileLookUpById(block.tileKey);
       ctx.drawImage(spriteSheet, tile.x, tile.y, TileSize, TileSize, x, y, cellSize, cellSize);
       if(showCollisionBox) {
