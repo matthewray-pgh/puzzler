@@ -19,20 +19,10 @@ export const LevelBuilder = () => {
   
   const workAreaRef = useRef(null);
   const [drawDimensions, setDrawDimensions] = useState({x: 10, y: 10});
-  useEffect(() => {
-    const element = workAreaRef.current;
-    let dimensions = {x: 0, y: 0};
-    dimensions.x = Math.floor(element.getBoundingClientRect().width / pixelsPerTile) - 1;
-    dimensions.y = Math.floor(element.getBoundingClientRect().height / pixelsPerTile) - 1;
-    setDrawDimensions(dimensions);
-    setLevel({x: dimensions.x, y: dimensions.y, zoomSize: 1});
-  }, []);
-
   const [level, setLevel] = useState({x: 0, y: 0, zoomSize: 1});
   const [levelTiles, setLevelTiles] = useState([]);
-
   const [map, setMap] = useState({x: 0, y: 0});
-  
+
   const [tileSelected, setTileSelected] = useState(null);
 
   const [baseMap, setBaseMap] = useState([]);
@@ -41,11 +31,26 @@ export const LevelBuilder = () => {
 
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
+  const [showCoordinates, setShowCoordinates] = useState(false);
   const [showBase, setShowBase] = useState(true);
   const [showCollision, setShowCollision] = useState(true);
   const [showObject, setShowObject] = useState(true);
 
-  const { tileLookUpById, baseLookUpByCoordinates } = useTile(dungeonDetails);
+  const { baseLookUpByCoordinates } = useTile(dungeonDetails);
+
+  const initializeEditorDimensions = () => {
+    const element = workAreaRef.current;
+    let dimensions = {x: 0, y: 0};
+    dimensions.x = Math.floor(element.getBoundingClientRect().width / pixelsPerTile) - 1;
+    dimensions.y = Math.floor(element.getBoundingClientRect().height / pixelsPerTile) - 1;
+    setMap({x:0, y:0})
+    setDrawDimensions(dimensions);
+    setLevel({x: dimensions.x, y: dimensions.y, zoomSize: 1});
+  };
+  
+  useEffect(() => {
+    initializeEditorDimensions();
+  }, []);
 
   const handleInputChange = (e) => {
     const {name, value} = e.target;
@@ -61,21 +66,6 @@ export const LevelBuilder = () => {
       height: parseInt(map.y)
     };
 
-    //filter tiles with no tileKey
-    const filteredTiles = levelTiles.filter(obj => obj.tileKey !== undefined);
-    
-    //generate base map
-    // const base = filteredTiles.map((tile) => {
-    //   let baseTile = tile;
-    //   if(tile.layer !== "base") {
-    //     baseTile = baseLookUpByCoordinates(tile.x, tile.y, baseMap);
-    //   }
-    //   return {x: tile.x, y: tile.y, tileKey: baseTile.tileKey};
-    // });
-
-    //generate collision map
-    // const collision = filteredTiles.filter((tile) => tile.layer === tileLayer.COLLISION).map((tile) => { 
-    //   return {x: tile.x, y: tile.y, tileKey: tile.tileKey}});
     const json = {
       mapType: type,
       level: details, 
@@ -104,59 +94,16 @@ export const LevelBuilder = () => {
   };
 
   const resetMap = useCallback(() => {
-    setLevel({x: '', y: '', zoomSize: 1});
+    initializeEditorDimensions();
+    
     setBaseMap([]); 
     setCollisionMap([]); 
     setObjectsMap([]);
     setLevelTiles([]); 
   }, []);
 
-  const handleMapCreate = (width, height, base, collision) => {
-    setBaseMap(base ? JSON.parse(base) : []);
-    setLevel({...level, x: width, y: height });
-    let newLevel = [];
-    if(base && base.length > 0) {
-      newLevel = [...JSON.parse(base)];
-      if(collision && collision.length > 0) {
-        const collisionMap = JSON.parse(collision);
-        collisionMap.forEach((tile) => {
-          const updateTileIndex = newLevel.findIndex((x) => x.x === tile.x && x.y === tile.y);
-          if(updateTileIndex !== -1) {
-            newLevel[updateTileIndex] = {x: tile.x, y: tile.y, tileKey: tile.tileKey};
-          }
-        });
-      }
-      setLevelTiles(newLevel);
-      return;
-    }
-    setShowUploadModal(false);
-  };
-
-  const handleFileChange = (e) => {
-    // resetForm();
-    const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target.result;
-      const json = JSON.parse(text);
-      const currentLevel = level;
-      currentLevel.x = json.level.width;
-      currentLevel.y = json.level.height;
-      setLevel(currentLevel);
-      // setWidth(json.level.width);
-      // setHeight(json.level.height);
-      setBaseMap(JSON.stringify(json.baseMap));
-      setCollisionMap(JSON.stringify(json.collisionMap));
-    };
-    reader.readAsText(file);  
-  };
-
   const handleSaveClick = () => {
     downloadJson();
-  };
-
-  const handleCancelClick = () => {
-    setShowUploadModal(false);
   };
 
   const handleResetClick = () => {
@@ -180,6 +127,23 @@ export const LevelBuilder = () => {
     setLevel((prev) => ({...prev, x: x, y: y}));
   };
 
+  const updateEditorMap = (x, y, base, collision, objects) => {
+    setBaseMap(base);
+    setCollisionMap(collision);
+    setObjectsMap(objects);
+    setLevelTiles([...base, ...collision, ...objects]);
+    setMap({x: x, y: y});
+
+    setLevel({
+      x: level.x > x ? level.x : x, 
+      y: level.y > y ? level.y : y,
+      zoomSize: 1});
+    setDrawDimensions({
+      x: level.x > x ? level.x : x, 
+      y: level.y > y ? level.y : y,
+    });
+  };
+
   return (
     <>
     <div className="admin">
@@ -196,7 +160,7 @@ export const LevelBuilder = () => {
         <h3>Controls</h3>
         <span />
         <button className="admin__button" onClick={() => {setShowUploadModal(true)}}>Upload</button>
-        <button className="admin__button" onClick={handleResetClick}>Reset Level</button>
+        <button className="admin__button" onClick={handleResetClick}>Reset Editor</button>
         <button className="admin__button" onClick={handleSaveClick}>Save</button>
 
         {/* row 2 */}
@@ -231,7 +195,16 @@ export const LevelBuilder = () => {
         </button>
         
         {/* row 3 */}
-        <h3>Filters</h3>
+        <div>
+        <input 
+            type="checkbox" 
+            name="showCoordinates" 
+            checked={showCoordinates}
+            onChange={(e) => setShowCoordinates(!showCoordinates)}
+            className="admin__checkbox" 
+          />
+          <label htmlFor="showCoordinates" className="admin__checkbox--label">Show Coordinates</label>
+        </div>
         <div>
           <input 
             type="checkbox" 
@@ -346,6 +319,7 @@ export const LevelBuilder = () => {
                     objectsMap={objectsMap}
                     setObjectsMap={setObjectsMap}
                     showGrid={showGrid}
+                    showCoordinates={showCoordinates}
                     setMap={setMap}
                   />  
                 </>
@@ -357,20 +331,10 @@ export const LevelBuilder = () => {
     </div>
 
     <ConfigurationsModal 
-      level={level}
-      baseMap={baseMap}
-      collisionMap={collisionMap}
       showUploadModal={showUploadModal} 
       setShowUploadModal={setShowUploadModal}
-      handleMapCreate={handleMapCreate}
-      handleInputChange={handleInputChange}
-      handleGenerateClick={()=>{}}
-      handleDownloadClick={handleSaveClick}
-      handleCancelClick={handleCancelClick}
-      handleResetClick={handleResetClick}
       updateLevelDimension={updateLevelDimension}
-      updateBaseMap={setBaseMap}
-      updateCollisionMap={setCollisionMap}
+      updateEditorMap={updateEditorMap}
     />
     </>
   );
@@ -444,6 +408,7 @@ const InteractionLayer = ({
   objectsMap,
   setObjectsMap,
   showGrid=true,
+  showCoordinates=false,
   setMap,
 }) => {
   const [highlightedTiles, setHighlightedTiles] = useState([]);
@@ -644,7 +609,12 @@ const InteractionLayer = ({
                   onMouseDown={(e) => handleMouseDown(j, i)}
                   onMouseEnter={() => handleMouseEnter(j, i)}
                 >
-                  {/* {i},{j} */}
+                  {showCoordinates && 
+                    <div>
+                      <div>x:{i}</div>
+                      <div>y:{j}</div>
+                    </div>
+                  }
                 </div>
               )
             })
@@ -653,26 +623,4 @@ const InteractionLayer = ({
       </div>
     </div>
   )
-};
-
-const GenerateConfirm = ({showConfirm, setShowConfirm, generateJson}) => {
-  const handleConfirm = () => {
-    setShowConfirm(false);
-    generateJson();
-  };
-
-  const handleCancel = () => {
-    setShowConfirm(false);
-  };
-  return (
-    <div className={`${showConfirm ? 'modal' : 'hide'}`}>
-      <div className="modal__content">
-        <div className="modal__content--message">Are you sure you want to generate a new map?</div>
-        <div className="modal__content--button-panel">
-          <button className="admin__button" onClick={() => handleConfirm()}>Confirm</button>
-          <button className="admin__button" onClick={() => handleCancel()}>Cancel</button>
-        </div>
-      </div>
-    </div>
-  );
 };

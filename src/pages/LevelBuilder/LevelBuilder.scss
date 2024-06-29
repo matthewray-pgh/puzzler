@@ -67,7 +67,6 @@ $form-font-size: 20px;
   }
 
   &__button {
-    min-height: 50px;
     border: none;
     border-radius: 4px;
     background-color: $button-color;
@@ -291,33 +290,20 @@ $form-font-size: 20px;
   background-color: rgba(0, 0, 0, 0.5);
 
   &__content {
-    width: 500px;
     background-color: $background;
     border: 2px solid $border-color;
     border-radius: 4px;
     padding: 20px;
 
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: repeat(3, auto);
+    grid-gap: 10px;
+    justify-content: center;
     align-items: center;
 
     &--title {
-      margin-bottom: 10px;
+      margin-right: 10px;
       font-size: 30px;
-    }
-
-    &--message {
-      margin-bottom: 10px;
-      padding: 10px;
-      font-size: 24px;
-    }
-
-    &--button-panel {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-gap: 10px;
-      width: 100%;
     }
   }
 
