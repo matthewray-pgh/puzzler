@@ -17,15 +17,15 @@ export const TilePanel = ({tileSelected, handleTileButtonClick}) => {
     // TODO: const [showEnemiesList, setShowEnemiesList] = useState(false);
   
     const baseLayerTiles = useMemo(() => {
-      return dungeonDetails.dungeonTileKey.filter((x) => x.layer === tileLayer.BASE)
+      return dungeonDetails.tileKey.filter((x) => x.layer === tileLayer.BASE)
     }, []);
   
     const collisionLayerTiles = useMemo(() => {
-      return dungeonDetails.dungeonTileKey.filter((x) => x.layer === tileLayer.COLLISION)
+      return dungeonDetails.tileKey.filter((x) => x.layer === tileLayer.COLLISION)
     }, []);
   
     const doorwayTiles = useMemo(() => {
-      return dungeonDetails.doorwayKey.filter((x) => x.state === tileState.STATIC)
+      return dungeonDetails.tileKey.filter((x) => x.state === tileState.STATIC)
     }, []);
   
     const closeAllList = () => {

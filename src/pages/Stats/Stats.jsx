@@ -11,6 +11,14 @@ export const Stats = () => {
 
       <div>
         <h1>Changelog</h1>
+        <h3>v.0.2.1</h3>
+        <ul>
+          <li>Added wooden doors to Game Levels</li>
+        </ul>
+        <h3>v.0.2.0</h3>
+        <ul>
+          <li>Level Builder redesign</li>
+        </ul>
         <h3>v.0.1.4</h3>
         <ul>
           <li>Added Game Over flow</li>

@@ -359,9 +359,9 @@ const WorkspaceLayer = ({
               [...Array(level.x)].map((_, j) => {
                 let tileExist = tiles.find((tile) => tile.x === j && tile.y === i);
                 if(tileExist) {
-                  let tileDetail = dungeonDetails.dungeonTileKey.find(tileKey => tileKey.id === tileExist.tileKey);
+                  let tileDetail = dungeonDetails.tileKey.find(tileKey => tileKey.id === tileExist.tileKey);
                   if(!tileDetail) {
-                    tileDetail = dungeonDetails.doorwayKey.find(tileKey => tileKey.id === tileExist.tileKey);
+                    tileDetail = dungeonDetails.tileKey.find(tileKey => tileKey.id === tileExist.tileKey);
                   }
                   return (
                     <div key={j}
@@ -490,7 +490,7 @@ const InteractionLayer = ({
       let newBaseMap = baseMap;
       let newCollisionMap = collisionMap;
       let newObjectsMap = objectsMap;
-      const tileDetails = dungeonDetails.dungeonTileKey.find(tileKey => tileKey.id === tileSelected);
+      const tileDetails = dungeonDetails.tileKey.find(tileKey => tileKey.id === tileSelected);
 
       if(!tileDetails) {
         console.error('Doorways and Details not working yet');
@@ -539,7 +539,7 @@ const InteractionLayer = ({
       }
       else if (tileSelected !== '') {
         highlightedTiles.forEach((tile) => {
-          const tileDetails = dungeonDetails.dungeonTileKey.find(tileKey => tileKey.id === tileSelected);
+          const tileDetails = dungeonDetails.tileKey.find(tileKey => tileKey.id === tileSelected);
 
           switch (tileDetails.layer) {
             case tileLayer.BASE:
