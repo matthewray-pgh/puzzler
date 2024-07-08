@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 import { Header } from '../../components/Header';
@@ -14,6 +14,7 @@ import { usePlayer } from '../../hooks/usePlayer';
 import { useEnvironmentObject } from "../../hooks/useEnvironmentObject";
 import { useMob } from "../../hooks/useMobs";
 import { useTile } from "../../hooks/useTile";
+import { useDoor } from "../../hooks/useDoors";
 
 import { HUD } from "../../components/HUD";
 
@@ -25,10 +26,11 @@ export const GameLevel = () => {
       width: 0,
       height: 0
     },
-    doorway: [],
+    doors: [],
     baseMap: [],
     collisionMap: [],
     collisionObjects: [],
+    interactObjects: [],
     mobs: [],
     torches: []
   });
@@ -51,14 +53,14 @@ export const GameLevel = () => {
               width: cellSize, 
               height: cellSize, 
               id: tile.id, 
-              interact: tile.interact ? true : false, 
-              interactDetails: tile.interact ? tile.interact : null 
             };
           });
+
           const loadedLevelDetails = {
             ...data.default,
-            collisionObjects
+            collisionObjects,
           };
+          
           setLevelDetails(loadedLevelDetails);
           setIsLoading(false);
         })
@@ -71,10 +73,11 @@ export const GameLevel = () => {
     fetchLevelData(fileName);
     //eslint-disable-next-line
   }, [fileName]);
-  
+
   //development tools
   const showGridOverlay = false;
   const showCollisionBox = false;
+  const showInteractionBox = false;
 
   //canvas
   const canvasRef = useRef(null);
@@ -102,7 +105,7 @@ export const GameLevel = () => {
 
   //player values
   const playerSize = TileSize * scale + (TileSize * scale / 2);
-  let isPlayerAttacking = false;
+  let isPlayerAttacking, isPlayerInteracting = false;
 
   const { 
     player, 
@@ -122,7 +125,7 @@ export const GameLevel = () => {
   let playerPosition = { x: -0.25 * cellSize, y: 2.5 * cellSize };
   let playerFacing = directions.RIGHT;
 
-  const [interactObjects, setInteractObjects] = useState([]);
+  const [interactObjects, setInteractObjects] = useState(null);
 
   //camera
   const camera = { 
@@ -158,6 +161,9 @@ export const GameLevel = () => {
 
   const mobsData = levelDetails.mobs ?? [];
   const mobs = useMob(cellSize, TileSize, playerSize, mobsData);
+
+  const doorsData = levelDetails.doors ?? [];
+  const doors = useDoor(cellSize, TileSize, cellSize, doorsData);
 
   const gameOverRef = useRef(false);
 
@@ -202,6 +208,11 @@ export const GameLevel = () => {
         renderBackgroundLayer(ctx, dungeonTiles);
         renderCollisionLayer(ctx, dungeonTiles);
         showGridOverlay && renderGridOverlay(ctx);
+
+        //render doors
+        if(levelDetails.doors && levelDetails.doors.length > 0){
+          doors.render(ctx, timestamp, showCollisionBox, showInteractionBox);
+        }
 
         //render torches
         if(levelDetails.torches && levelDetails.torches.length > 0){
@@ -277,21 +288,24 @@ export const GameLevel = () => {
 
           if(showCollisionBox) {
             //hit
-            ctx.strokeStyle = "aqua"; 
+            ctx.strokeStyle = "blue"; 
             ctx.lineWidth = 2; 
             ctx.strokeRect(damageDetection.x, damageDetection.y, damageDetection.width, damageDetection.height);
             //movement detection
             ctx.strokeStyle = "fuchsia";
             ctx.lineWidth = 2;
             ctx.strokeRect(movementDetection.x, movementDetection.y, movementDetection.width, movementDetection.height);
-            //interaction
-            ctx.strokeStyle = "blue";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(interactionDetection.x, interactionDetection.y, interactionDetection.width, interactionDetection.height);
             //attack
             ctx.strokeStyle = "red";
             ctx.lineWidth = 2;
             ctx.strokeRect(attackDetection.x, attackDetection.y, attackDetection.width, attackDetection.height);
+          }
+
+          if(showInteractionBox){
+            //interaction
+            ctx.strokeStyle = "aqua";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(interactionDetection.x, interactionDetection.y, interactionDetection.width, interactionDetection.height);
           }
 
           const movePlayer = (dx, dy, collisionObjects, camera) => {
@@ -307,7 +321,19 @@ export const GameLevel = () => {
               );
             });
 
-            if (!isCollision && !playerRef.current.actions.isDamaged) {
+            const isCollisionDoor = doors.woodenDoors.some((door) => {
+              if (door.state.isClosed && !door.state.isOpened) {
+                return (
+                    movementDetection.x + dx + camera.x < door.position.x * cellSize + door.collisionBox.width &&
+                    movementDetection.x + dx + movementDetection.width + camera.x > door.position.x * cellSize &&
+                    movementDetection.y + dy + camera.y < door.position.y * cellSize + door.collisionBox.height &&
+                    movementDetection.y + dy + movementDetection.height + camera.y > door.position.y * cellSize
+                );
+              }
+              return false;
+            });
+
+            if (!isCollision && !isCollisionDoor && !playerRef.current.actions.isDamaged) {
               playerPosition.x = newPlayerX;
               playerPosition.y = newPlayerY;
               updatePlayerPosition(newPlayerX, newPlayerY);
@@ -337,7 +363,7 @@ export const GameLevel = () => {
 
           checkCollisions(damageDetection);
 
-          checkInteractions(interactionDetection);
+          interactWithDoors(interactionDetection, movementDetection);
           checkPlayerAttacking(attackDetection);
 
           updatePlayerPosition(playerPosition.x, playerPosition.y);
@@ -375,24 +401,51 @@ export const GameLevel = () => {
         setTimeout(() => {
           updateActions('isDamaged', false);
         }, 1000);
-      }
+      };
     };
 
-    const checkInteractions = (playerInteractBox) => {
-      const iObjects = levelDetails.collisionObjects.filter((obj) => {
+    const interactWithDoors = (playerInteractBox, playerCollisionBox) => {
+      let interactDoors = doors.woodenDoors.filter((door) => {
         return (
-          obj.interact &&
-          playerInteractBox.x + camera.x < obj.x + obj.width &&
-          playerInteractBox.x + playerInteractBox.width + camera.x > obj.x &&
-          playerInteractBox.y + camera.y < obj.y + obj.height &&
-          playerInteractBox.y + playerInteractBox.height + camera.y > obj.y
-        );
+          playerInteractBox.x + camera.x < door.position.x * cellSize + door.interactionBox.x + door.interactionBox.width &&
+          playerInteractBox.x + playerInteractBox.width + camera.x > door.position.x * cellSize + door.interactionBox.x &&
+          playerInteractBox.y + camera.y < door.position.y * cellSize + door.interactionBox.y + door.interactionBox.height &&
+          playerInteractBox.y + playerInteractBox.height + camera.y > door.position.y * cellSize + door.interactionBox.y
+        ) 
       });
-      if(iObjects.length > 0){
-        setInteractObjects(iObjects)
-      }
-      else{
-        setInteractObjects([]);
+
+      if(interactDoors && interactDoors.length > 0){
+        setInteractObjects(interactDoors[0]);
+
+        if(controlsRef.current.keysPressed.includes('e') && !isPlayerInteracting){
+          //check player collision
+          const isCollision = doors.woodenDoors.some((door) => {
+            return (
+              playerCollisionBox.x + camera.x < door.position.x * cellSize + door.collisionBox.width &&
+              playerCollisionBox.x + playerCollisionBox.width + camera.x > door.position.x * cellSize &&
+              playerCollisionBox.y + camera.y < door.position.y * cellSize + door.collisionBox.height &&
+              playerCollisionBox.y + playerCollisionBox.height + camera.y > door.position.y * cellSize &&
+              door.state.isOpened
+            );
+          });
+          //cancel player interaction if player is colliding with door
+          if(isCollision) {
+            setInteractObjects(null);
+            return;
+          }
+
+          isPlayerInteracting = true;
+          doors.toggleDoor(interactDoors[0].id);
+          setInteractObjects(null);
+
+          //delay to prevent multiple interactions
+          setTimeout(() => {
+            isPlayerInteracting = false;
+          }, 1000);
+
+        }
+      } else {
+        setInteractObjects(null);
       }
     };
 
@@ -441,8 +494,8 @@ export const GameLevel = () => {
 
   //set GameMessage when state object has items in it
   useEffect(() => {
-    if(interactObjects.length > 0){
-      setGameMessage(interactObjects[0].interactDetails.message);
+    if(interactObjects){
+      setGameMessage(interactObjects.message);
     } else {
       setGameMessage(null);
     }
@@ -457,8 +510,6 @@ export const GameLevel = () => {
     } else {
       if(keysPressed.includes('e')){
         updateActions('isInteracting', true);
-        handleInteractions();
-        setGameMessage(null);
       }
       else {
         updateActions('isIdle', false);
@@ -476,52 +527,6 @@ export const GameLevel = () => {
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keysPressed, mouseClicked]);
-
-  const handleInteractions = () => {
-    if(interactObjects.length > 0){
-      //TODO: remove change to base layer and replace with non-collise collision prop
-      let updatedCollisionMap = levelDetails.collisionMap;
-      const updateBaseMap = [...levelDetails.baseMap];
-
-      const { x, y, id, interactDetails } = interactObjects[0];
-      //transpose
-      const newX = y / cellSize;
-      const newY = x / cellSize;
-
-      //update collisoinMap
-      let collisionRemovalIndex = updatedCollisionMap.findIndex(obj => {
-        return obj.tileKey === id && obj.x === newX && obj.y === newY;
-      });
-      updatedCollisionMap.splice(collisionRemovalIndex, 1);
-
-      //update collisionObjects
-      const updatedColiisionObject = updatedCollisionMap.map((block, index) => {
-        const y = block.x * cellSize;
-        const x = block.y * cellSize;
-        let tile = tileLookUpById(block.tileKey);
-        return { 
-          x, 
-          y, 
-          width: cellSize, 
-          height: cellSize, 
-          id: tile.id, 
-          interact: tile.interact ? true : false, 
-          interactDetails: tile.interact ? tile.interact : null 
-        };
-      })
-
-      //update baseMap
-      const newBaseLevel = updateBaseMap.filter(obj => !(obj.x === newX && obj.y === newY ));
-      newBaseLevel.push({ x: newX, y: newY, tileKey: interactDetails.tile });
-
-      setLevelDetails(prevState => ({
-        ...prevState,
-        collisionMap: updatedCollisionMap,
-        collisionObjects: updatedColiisionObject,
-        baseMap: newBaseLevel
-      }));
-    }
-  }
 
   const updateCamera = (cellSize) => {
     const position = {
@@ -656,7 +661,7 @@ export const GameLevel = () => {
       let tile = tileLookUpById(block.tileKey);
       ctx.drawImage(spriteSheet, tile.x, tile.y, TileSize, TileSize, x, y, cellSize, cellSize);
       if(showCollisionBox) {
-        ctx.strokeStyle = "yellow"; 
+        ctx.strokeStyle = "fuchsia"; 
         ctx.lineWidth = 2; 
         ctx.strokeRect(x, y, cellSize, cellSize);
       }      
@@ -681,8 +686,8 @@ export const GameLevel = () => {
     for (let x = 0; x < levelWidth; x += cellSize) {
       for (let y = 0; y < levelHeight; y += cellSize) {
         // Display the x and y coordinates at the center of each block
-        ctx.fillText(`x:${x/cellSize}`, x + cellSize / 2 - 20, y + 15);
-        ctx.fillText(`y:${y/cellSize}`, x + cellSize / 2 - 20, y + 30);
+        ctx.fillText(`x:${y/cellSize}`, x + cellSize / 2 - 20, y + 15);
+        ctx.fillText(`y:${x/cellSize}`, x + cellSize / 2 - 20, y + 30);
       }
     }
     ctx.stroke();
@@ -704,7 +709,7 @@ export const GameLevel = () => {
           <HUD health={player.health} magic={player.magic}/>
         </div>
         {gameMessage && <div className="gameLevel__message" style={{width: gridWidth}}>
-          {gameMessage}
+          {gameMessage} <span style={{border: 'solid 3px #fff', borderRadius: "5px", padding: "0 7px"}}>E</span>
         </div>}
         <canvas className="gameLevel__window" ref={canvasRef} width={gridWidth} height={gridHeight} />
         <GameOver gameOver={gameOver} />

@@ -3,11 +3,7 @@ import { useCallback } from 'react';
 export const useTile = (tileDetails) => {
 
   const tileLookUpById = useCallback((id) => {
-    let tile = tileDetails.dungeonTileKey.find((x) => x.id === id);
-    if(!tile) {
-      tile = tileDetails.doorwayKey.find((x) => x.id === id);
-    }
-    return tile;
+    return tileDetails.tileKey.find((x) => x.id === id);
   },[tileDetails]);
 
   const tileLookUpByCoordinates = useCallback((x, y, levelTiles) => {
@@ -21,6 +17,6 @@ export const useTile = (tileDetails) => {
   return { 
     tileLookUpById, 
     tileLookUpByCoordinates, 
-    baseLookUpByCoordinates 
+    baseLookUpByCoordinates, 
   }
 }

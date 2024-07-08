@@ -1,0 +1,39 @@
+{
+  "cellSize": 32,
+  "spriteSheetSize": {
+    "x": 384,
+    "y": 64
+  },
+  "tileKey": [
+    { "id": "e0", "layer": "collision", "y": 0, "x": 0, "state": "static", "detail": "horizontal doorway left one" },
+    { "id": "e1", "layer": "collision", "y": 0, "x": 32, "state": "static", "detail": "horizontal doorway right one" },
+    { "id": "e2", "layer": "collision", "y": 0, "x": 64, "state": "static", "detail": "door stone - key", 
+      "interact": { "tile": "f11", "isCollision": true, "message": "use key to open door?" }},
+    { "id": "e3", "layer": "collision", "y": 0, "x": 96, "state": "static", "detail": "door wood", 
+      "interact": { "tile": "e11", "isCollision": true, "message": "open door?" }},
+    { "id": "e4", "layer": "collision", "y": 0, "x": 128, "state": "dynamic", "detail": "door wood open - anim 1" },
+    { "id": "e5", "layer": "collision", "y": 0, "x": 160, "state": "dynamic", "detail": "door wood open - anim 2" },
+    { "id": "e6", "layer": "collision", "y": 0, "x": 192, "state": "dynamic", "detail": "door wood open - anim 3" },
+    { "id": "e7", "layer": "collision", "y": 0, "x": 224, "state": "dynamic", "detail": "door wood open - anim 4" },
+    { "id": "e8", "layer": "collision", "y": 0, "x": 256, "state": "dynamic", "detail": "door wood open - anim 5" },
+    { "id": "e9", "layer": "collision", "y": 0, "x": 288, "state": "dynamic", "detail": "door wood open - anim 6" },
+    { "id": "e10", "layer": "collision", "y": 0, "x": 320, "state": "dynamic", "detail": "door wood open - anim 7" },
+    { "id": "e11", "layer": "collision", "y": 0, "x": 352, "state": "static", "detail": "door wood open",
+      "interact": { "tile": "e3", "isCollision": false, "message": "close door?" }},
+    { "id": "f0", "layer": "collision", "y": 32, "x": 0, "state": "static", "detail": "horizontal doorway left two" },
+    { "id": "f1", "layer": "collision", "y": 32, "x": 32, "state": "static", "detail": "horizontal doorway right two" },
+    { "id": "f2", "layer": "collision", "y": 32, "x": 64, "state": "static", "detail": "door stone - enemy", 
+      "interact": { "tile": "f11", "isCollision": true, "message": "open door?" }},
+    { "id": "f3", "layer": "collision", "y": 32, "x": 96, "state": "static", "detail": "door stone",
+      "interact": { "tile": "f11", "isCollision": true, "message": "open door?" }},
+    { "id": "f4", "layer": "collision", "y": 32, "x": 128, "state": "dynamic", "detail": "door stone open - anim 1" },
+    { "id": "f5", "layer": "collision", "y": 32, "x": 160, "state": "dynamic", "detail": "door stone open - anim 2" },
+    { "id": "f6", "layer": "collision", "y": 32, "x": 192, "state": "dynamic", "detail": "door stone open - anim 3" },
+    { "id": "f7", "layer": "collision", "y": 32, "x": 224, "state": "dynamic", "detail": "door stone open - anim 4" },
+    { "id": "f8", "layer": "collision", "y": 32, "x": 256, "state": "dynamic", "detail": "door stone open - anim 5" },
+    { "id": "f9", "layer": "collision", "y": 32, "x": 288, "state": "dynamic", "detail": "door stone open - anim 6" },
+    { "id": "f10", "layer": "collision", "y": 32, "x": 320, "state": "dynamic", "detail": "door stone open - anim 7" },
+    { "id": "f11", "layer": "collision", "y": 32, "x": 352, "state": "static", "detail": "door stone open",
+      "interact": { "tile": "f3", "isCollision": false, "message": "open door?" }}
+  ]
+}
