@@ -82,8 +82,7 @@ export const LevelBuilder = () => {
     link.href = url;
     link.download = 'dungeon-map.json';
     link.click();
-    // eslint-disable-next-line
-  }, [level, baseLookUpByCoordinates, levelTiles]);
+  }, [map, baseMap, collisionMap, objectsMap]);
 
   const handleTileButtonClick = (id) => {
     if(id === tileSelected) {
@@ -537,7 +536,47 @@ const InteractionLayer = ({
           newObjectsMap = resetTileset(newObjectsMap, tile.x, tile.y);
         });
       }
+      else if(tileSelected === 'room') {
+        //overwrite anything existing in selected area
+        highlightedTiles.forEach((tile) => {
+          newBaseMap = resetTileset(newBaseMap, tile.x, tile.y);;
+          newCollisionMap = resetTileset(newCollisionMap, tile.x, tile.y);
+          newObjectsMap = resetTileset(newObjectsMap, tile.x, tile.y);
+        });
+
+        // create room
+        const minX = Math.min(...highlightedTiles.map(tile => tile.x));
+        const maxX = Math.max(...highlightedTiles.map(tile => tile.x));
+        const minY = Math.min(...highlightedTiles.map(tile => tile.y));
+        const maxY = Math.max(...highlightedTiles.map(tile => tile.y));
+
+        highlightedTiles.forEach((tile, i) => {
+          if(tile.x === minX && tile.y === minY) {
+            newCollisionMap = updateTileset(newCollisionMap, tile.x, tile.y, "a0");
+          }
+          else if(tile.x === maxX && tile.y === minY) {
+            newCollisionMap = updateTileset(newCollisionMap, tile.x, tile.y, "a4");
+          }
+          else if(tile.x === minX && tile.y === maxY) {
+            newCollisionMap = updateTileset(newCollisionMap, tile.x, tile.y, "d0");
+          }
+          else if(tile.x === maxX && tile.y === maxY) {
+            newCollisionMap = updateTileset(newCollisionMap, tile.x, tile.y, "d4");
+          }
+          else if((tile.x === minX || tile.x === maxX ) && (tile.y !== minY && tile.y !== maxY)) {
+            newCollisionMap = updateTileset(newCollisionMap, tile.x, tile.y, "b0");
+          }
+          else if((tile.y === minY || tile.y === maxY ) && (tile.x !== minX && tile.x !== maxX)) {
+            newCollisionMap = updateTileset(newCollisionMap, tile.x, tile.y, "a1");
+          }
+          else {
+            const tileId = (tile.x + tile.y) % 2 === 0 ? "c2" : "c1";
+            newBaseMap = updateTileset(newBaseMap, tile.x, tile.y, tileId);
+          }
+        });
+      }
       else if (tileSelected !== '') {
+        console.log('tileSelected', tileSelected);
         highlightedTiles.forEach((tile) => {
           const tileDetails = dungeonDetails.tileKey.find(tileKey => tileKey.id === tileSelected);
 
