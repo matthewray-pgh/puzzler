@@ -14,6 +14,7 @@ export const TilePanel = ({tileSelected, handleTileButtonClick}) => {
     const [showWallsList, setShowWallsList] = useState(false);
     const [showDoorwaysList, setShowDoorwaysList] = useState(false);
     const [showObjectsList, setShowObjectsList] = useState(false);
+    const [showPrefabList, setPrefabList] = useState(false);
     // TODO: const [showEnemiesList, setShowEnemiesList] = useState(false);
   
     const baseLayerTiles = useMemo(() => {
@@ -33,6 +34,7 @@ export const TilePanel = ({tileSelected, handleTileButtonClick}) => {
       setShowWallsList(false);
       setShowDoorwaysList(false);
       setShowObjectsList(false);
+      setPrefabList(false);
     };
   
     return (
@@ -100,6 +102,21 @@ export const TilePanel = ({tileSelected, handleTileButtonClick}) => {
             <TileButton 
               tile={{id: 'torch', x: 0, y: 0, detail: 'Torch'}}
               tileSpriteSheet={torchSheet}
+              handleClick={handleTileButtonClick}
+              tileSelected={tileSelected}
+            />}
+          </div>
+
+          <TileListHeader 
+            title="Prefabs"
+            showList={showPrefabList}
+            setShowList={setPrefabList}
+            resetAll={closeAllList}
+          />
+          <div>
+            {showPrefabList &&
+            <TileButtonPrefab 
+              prefab={{id: 'room', detail: 'dungeon room - rectangle'}}
               handleClick={handleTileButtonClick}
               tileSelected={tileSelected}
             />}
@@ -177,3 +194,19 @@ export const TilePanel = ({tileSelected, handleTileButtonClick}) => {
       </button>
     );
   };
+
+const TileButtonPrefab = ({
+  prefab, 
+  handleClick, 
+  tileSelected
+}) => {
+  return (
+    <button 
+      className={`admin__tile-button ${prefab.id === tileSelected ? "admin__tile-button--selected" : null}`}
+      onClick={() => handleClick(prefab.id)}
+    >
+      <span/>
+      {prefab.detail}
+    </button>
+  );
+};

@@ -1,24 +1,30 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+import bridgeSvg from '../../assets/images/bridge_2.svg';
 import './Home.scss';
 
 export const Home = () => {
   return (
     <div className="home">
-      <h1>Home</h1>
-
-      <div>
-        <Link to="/levelSelect">Start Game</Link>
-      </div>
-
-      <div>
-        <Link to="/stats">Game Stats</Link>
-      </div>
-
-      <div>
-        <Link to="/levelBuilder">Level Builder</Link>
-      </div>
+      <menu className="home__menu">
+        <div>
+          <Link to="/levelSelect">Start Game</Link>
+        </div>
+        <div>
+          <Link to="/stats">Game Stats</Link>
+        </div>
+        <div>
+          <Link to="/levelBuilder">Level Builder</Link>
+        </div>
+      </menu>
+      <section className="home__developer">
+        <div className="home__developer--a">LONE</div>
+        <div className="home__developer--b">BRIDGE GAMES</div>
+        <div className="home__developer--c">
+          <img src={bridgeSvg} alt="bridge" />
+        </div>
+      </section>
     </div>
   );
 };
