@@ -30,27 +30,7 @@
   }
 
   &__developer {
-    display: grid;
-    grid-template-areas: 'a c'
-                          'b b';
     font-family: "MechanoidItalic";
-
-    &--a {
-      font-size: 100px;
-      grid-area: a;
-    }
-
-    &--b {
-      font-size: 60px;
-      grid-area: b;
-    }
-
-    &--c {
-      grid-area: c;
-      img {
-        width: 200px;
-        height: 200px;
-      }
-    }
+    font-size: 24px;
   }
 }

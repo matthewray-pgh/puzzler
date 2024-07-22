@@ -9,12 +9,15 @@ import dungeonDetails from "../../assets/dungeon.json";
 import playerMasterSheet from "../../assets/images/character-master.png"
 
 import { directions } from '../../utils/enums';
-import { useControls } from '../../hooks/useControls';
-import { usePlayer } from '../../hooks/usePlayer';
-import { useEnvironmentObject } from "../../hooks/useEnvironmentObject";
-import { useMob } from "../../hooks/useMobs";
-import { useTile } from "../../hooks/useTile";
-import { useDoor } from "../../hooks/useDoors";
+import { 
+  useControls, 
+  usePlayer, 
+  useEnvironmentObject,
+  useMob,
+  useTile,
+  useDoor,
+  useWindowSize 
+} from "../../hooks";
 
 import { HUD } from "../../components/HUD";
 
@@ -93,11 +96,19 @@ export const GameLevel = () => {
   }, [leftKeyPressed, rightKeyPressed, upKeyPressed, downKeyPressed, keysPressed, mouseClicked]);
 
   //game display and level rendering
+  const { windowSize, isMobile } = useWindowSize();
   const TileSize = dungeonDetails.cellSize;
-  const cameraDimensions = {width: 15, height: 9};
   const scale = 2; //TODO: needs automated based on screen size
-  
   const cellSize = TileSize * scale;
+  
+  const headerHeight = 2; //TODO: needs automated based on screen size
+  const widthSpacing = isMobile ? 0 : 1;
+
+  const cameraDimensions = {
+    width: windowSize.width / cellSize - widthSpacing, 
+    height: windowSize.height / cellSize - headerHeight
+  };
+  
   const gridWidth = cameraDimensions.width * cellSize;
   const gridHeight = cameraDimensions.height * cellSize;
   const levelWidth = levelDetails.level.width * cellSize;
