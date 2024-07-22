@@ -1,9 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+import { useWindowSize } from '../hooks';
 import './Header.scss';
 
 export const Header = ({title, menuOptions}) => {
+
+  const { isMobile } = useWindowSize();
 
   const menuStyle = {
     'display': 'grid',
@@ -15,7 +18,12 @@ export const Header = ({title, menuOptions}) => {
     <div className="header" style={menuStyle}>
       <div className="header__title">{title}</div>
       {menuOptions.map((options, index) => {
-        return <Link key={`${index}-${options.label}`} to={options.link}>{options.label}</Link>
+        if(isMobile && options.label !== "Level Builder") {
+          return <Link key={`${index}-${options.label}`} to={options.link}>{options.label}</Link>
+        }
+        else {
+          return null;
+        }
         }
       )}
     </div>

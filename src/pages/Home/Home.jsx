@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-import bridgeSvg from '../../assets/images/bridge_2.svg';
 import './Home.scss';
 
 export const Home = () => {
@@ -18,13 +17,6 @@ export const Home = () => {
           <Link to="/levelBuilder">Level Builder</Link>
         </div>
       </menu>
-      <section className="home__developer">
-        <div className="home__developer--a">LONE</div>
-        <div className="home__developer--b">BRIDGE GAMES</div>
-        <div className="home__developer--c">
-          <img src={bridgeSvg} alt="bridge" />
-        </div>
-      </section>
     </div>
   );
 };

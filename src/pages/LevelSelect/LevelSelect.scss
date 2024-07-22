@@ -11,13 +11,6 @@
     padding: 10px;
   }
 
-  &__levels {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    align-content: center;
-    justify-content: center;
-  }
-
   &__level {
     padding: 10px;
     margin: 10px;
@@ -50,5 +43,29 @@
     height: 75px;
     object-fit: cover;
     border: 2px solid $font-primary;
+  }
+}
+
+//desktop 
+@media (min-width: 768px){
+  .level-select {
+    &__levels {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      align-content: center;
+      justify-content: center;
+    }
+  }
+}
+
+// mobile
+@media (max-width: 768px) {
+  .level-select {
+    &__levels {
+      display: grid;
+      grid-template-columns: 1fr;
+      align-content: center;
+      justify-content: center;
+    }
   }
 }
