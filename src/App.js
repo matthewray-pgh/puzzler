@@ -8,6 +8,7 @@ import { GameLevel } from './pages/Game/GameLevel.jsx';
 import { Stats } from './pages/Stats/Stats.jsx';
 import { LevelBuilder } from "./pages/LevelBuilder/LevelBuilder.jsx";
 import { LevelSelect } from './pages/LevelSelect/LevelSelect.jsx';
+import { Logo } from './pages/Logo/Logo.jsx';
 
 export const App = () => {
   return (
@@ -18,6 +19,7 @@ export const App = () => {
         <Route path="/stats" element={<Stats />} />
         <Route path="/levelBuilder" element={<LevelBuilder />} />
         <Route path="/levelSelect" element={<LevelSelect />} />
+        <Route path="/logo" element={<Logo />} />
       </Routes>
     </BrowserRouter>
   );

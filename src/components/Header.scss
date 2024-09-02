@@ -1,6 +1,9 @@
 @import '../assets/styles/variables.scss';
 
 .header {
+  display: grid;
+  grid-template-columns: auto auto;
+
   padding: 10px;
   background-color: $background;
   color: $font-primary;
@@ -23,8 +26,12 @@
 
     &:hover {
       font-weight: bold;
-      background: $focus;
       border-radius: 5px;
     }
+  }
+
+  &__exit-link {
+    justify-self: end;
+    align-self: center;
   }
 }

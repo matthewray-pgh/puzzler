@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=SUSE:wght@100..800&display=swap');
 
 $font-family: 'VT323', monospace;
 $font-press-start: 'Press Start 2P', cursive;
@@ -7,7 +8,8 @@ $font-press-start: 'Press Start 2P', cursive;
 $font-primary: #ffffff;
 $font-secondary: #0a85a7;
 
-$background: #282c34;
+$background: rgb(40, 44, 52);
+$background-opacity-75: rgb(40, 44, 52, 0.75);
 $border-color: #ffffff;
 $button-color: #0a85a7;
 
@@ -18,3 +20,6 @@ $lone-bridge-color: #ffffff;
 $lone-bridge-color1: #c5c7c9;
 $lone-bridge-color2: #8c8f93;
 $lone-bridge-color3: #53585e;
+
+$lone-bridge-font: 'SUSE', sans-serif;
+$lone-bridge-font-weight: 800;

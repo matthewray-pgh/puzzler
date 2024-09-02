@@ -1,22 +1,30 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+import { useWindowSize } from '../../hooks';
+import { Logo } from '../Logo/Logo';
+
 import './Home.scss';
 
 export const Home = () => {
+  const { isMobile } = useWindowSize();
   return (
     <div className="home">
-      <menu className="home__menu">
-        <div>
-          <Link to="/levelSelect">Start Game</Link>
-        </div>
-        <div>
-          <Link to="/stats">Game Stats</Link>
-        </div>
-        <div>
-          <Link to="/levelBuilder">Level Builder</Link>
-        </div>
-      </menu>
+      <Logo />
+      <section className="home__game">
+        <div className="home__game--title">DUNGEON EXPLORER</div>
+        <menu className="home__menu">
+          <div>
+            <Link to="/levelSelect">Start Game</Link>
+          </div>
+          <div>
+            <Link to="/stats">Game Stats</Link>
+          </div>
+          {!isMobile && <div>
+            <Link to="/levelBuilder">Level Builder</Link>
+          </div>}
+        </menu>
+      </section>
     </div>
   );
 };
