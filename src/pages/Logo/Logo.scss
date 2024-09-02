@@ -1,0 +1,37 @@
+@import '../../assets/styles/variables.scss';
+
+.logo {
+  padding: 10px 20px;
+
+  font-family: $lone-bridge-font;
+  font-weight: $lone-bridge-font-weight;
+
+  &__branding {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: center;
+    justify-content: center;
+
+    color: $lone-bridge-color2
+  }
+}
+
+//desktop 
+@media (min-width: 768px){
+  .logo {
+    &__title {
+      font-size: 58px;
+      color: $lone-bridge-color;
+    }
+  }
+}
+
+// mobile
+@media (max-width: 768px) {
+  .logo {
+    &__title {
+      font-size: 28px;
+      color: $lone-bridge-color;
+    }
+  }
+}

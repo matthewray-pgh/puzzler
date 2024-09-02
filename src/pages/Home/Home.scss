@@ -6,31 +6,125 @@
   background-color: $background;
   font-family: $font-family;
 
-  padding: 20px;
-
-  h1 {
-    margin: 0 auto;
-    padding: 10px 0;
-    font-size: 36px;
-  }
-
   a {
     color: $font-primary;
     text-decoration: none;
-    font-size: 24px;
+    font-size: 28px;
 
     &:hover {
-      padding-left: 5px;
+      padding-left: 10px;
       font-weight: bold;
+      font-size: 30px;
+      animation: highlightOption 0.5s ease forwards;
+    }
+
+    &:not(:hover) {
+      animation: resetOption 0.5s ease forwards;
+    }
+  }
+
+  &__game {
+    height: 300px;
+    width: 100%;
+    background-size: cover;
+    background-position: center;
+    background-image: url('../../assets/images/dungeonCrawlerGameCapture.png');
+    position: relative;
+  
+    &--title {
+      position: absolute;
+      bottom: 0;
+
+      width: 100%;
+      padding: 15px 0;
+      font-size: 36px;
+      color: $font-primary;
+      text-align: center;
+
+      background-color: $background-opacity-75;
+    }
+  
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 2px 2px 5px 2px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+    }
+
+    &:hover .home__menu {
+      opacity: 1;
+      transform: translateY(0);
+      animation: showMenu 0.3s ease forwards;
+    }
+
+    &:not(:hover) .home__menu {
+      opacity: 0;
+      transform: translateY(-20px);
+      animation: hideMenu 0.3s ease forwards;
     }
   }
 
   &__menu {
-    background-color: $background;
+    padding: 20px;
+    background-color: $background-opacity-75;
+    opacity: 0; // Initially hidden
+    transform: translateY(-20px); // Hidden position
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    animation-fill-mode: forwards;
   }
+}
 
-  &__developer {
-    font-family: "MechanoidItalic";
-    font-size: 24px;
+@keyframes highlightOption {
+  0% {
+    padding: 0;
+  }
+  100% {
+    padding-left: 10px;
+    font-weight: bold;
+  }
+}
+
+@keyframes resetOption {
+  0% {
+    padding-left: 10px;
+    font-weight: bold;
+  }
+  100% {
+    padding: 0;
+  }
+}
+
+@keyframes showMenu {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hideMenu {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+//desktop 
+@media (min-width: 768px){
+  .home {
+    padding: 20px;
+  }
+}
+
+// mobile
+@media (max-width: 768px) {
+  .home {
+    padding: 20px 0;
   }
 }
