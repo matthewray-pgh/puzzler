@@ -11,6 +11,12 @@ export const Stats = () => {
 
       <div>
         <h1>Changelog</h1>
+        <h3>v.0.4.0</h3>
+        <ul>
+          <li>Updated erase controls on Level Builder</li>
+          <li>Added mob controls on Level Builder</li>
+          <li>Updated attack indicator on Game level - changed from rect to circle</li>
+        </ul>
         <h3>v.0.3.0</h3>
         <ul>
           <li>Added new home page "Lone Bridge Games"</li>

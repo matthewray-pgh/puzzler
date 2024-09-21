@@ -1,0 +1,17 @@
+{
+  "cellSize": 32,
+  "mobs": [
+    {
+      "id": 1, 
+      "x": 0, 
+      "y": 0, 
+      "name": "Ghoul", 
+      "health": 2, 
+      "spriteSheet": "ghoul-master.png",
+      "spriteSheetSize": {
+        "x": 192,
+        "y": 96
+      }
+    }
+  ]
+}

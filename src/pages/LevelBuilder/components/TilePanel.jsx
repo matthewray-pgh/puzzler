@@ -15,8 +15,7 @@ export const TilePanel = ({tileSelected, handleTileButtonClick}) => {
     const [showDoorwaysList, setShowDoorwaysList] = useState(false);
     const [showObjectsList, setShowObjectsList] = useState(false);
     const [showPrefabList, setPrefabList] = useState(false);
-    // TODO: const [showEnemiesList, setShowEnemiesList] = useState(false);
-  
+   
     const baseLayerTiles = useMemo(() => {
       return dungeonDetails.tileKey.filter((x) => x.layer === tileLayer.BASE)
     }, []);
@@ -42,13 +41,6 @@ export const TilePanel = ({tileSelected, handleTileButtonClick}) => {
         <h3>TILES</h3>
   
         <div style={{padding: '10px'}}>
-          <button 
-            className={`admin__tile-button ${'reset' === tileSelected ? "admin__tile-button--selected" : null}`}
-            onClick={() => handleTileButtonClick('reset')}>
-              <div style={{border: '3px solid #fff', height: '26px', width: '26px'}}></div>
-              clear cell
-          </button>
-  
           <TileListHeader 
             title="Floors"
             showList={showFloorList}

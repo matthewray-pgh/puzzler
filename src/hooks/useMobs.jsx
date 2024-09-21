@@ -21,7 +21,7 @@ export const useMob = (cellSize, tileSize, mobSize, mobsData, isPaused) => {
         width: mobSize * 0.4,
         height: mobSize * 0.7,
       },
-      position: {x: data.waypoints[0].x, y: data.waypoints[0].y},
+      position: {x: data.x, y: data.y},
       waypoints: data.waypoints,
       move: { speed: 0.03, damageCooldown: 500 },
       flipImage: false,
@@ -106,7 +106,7 @@ export const useMob = (cellSize, tileSize, mobSize, mobsData, isPaused) => {
       mob.flipImage = false;
       if(mob.state.isDamaged) return;
       // Inside your game loop
-      if (mob.waypoints.length > 0) {
+      if (mob.waypoints && mob.waypoints.length > 0) {
         const waypoint = mob.waypoints[0];
         const dx = waypoint.x - mob.position.x;
         const dy = waypoint.y - mob.position.y;
