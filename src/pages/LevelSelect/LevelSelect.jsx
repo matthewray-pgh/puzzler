@@ -7,9 +7,10 @@ import { Header } from '../../components/Header.jsx';
 export const LevelSelect = () => {
 
   const levels = [
-    {id: 1, image: null, file: 'level1'},
-    {id: 2, image: null, file: 'level2'},
-    {id: 3, image: null, file: 'level3'},
+    {id: 1, image: null, description: '', file: 'level1'},
+    {id: 2, image: null, description: '', file: 'level2'},
+    {id: 3, image: null, description: '', file: 'level3'},
+    {id: 4, image: null, description: '', file: 'level4'},
   ];
 
   return (

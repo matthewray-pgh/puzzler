@@ -81,6 +81,7 @@ export const GameLevel = () => {
   const showGridOverlay = false;
   const showCollisionBox = false;
   const showInteractionBox = false;
+  const showAttackBox = true;
 
   //canvas
   const canvasRef = useRef(null);
@@ -286,7 +287,7 @@ export const GameLevel = () => {
             if(direction === directions.UP) 
               return basePosition - attackVerticalDetectOffset;
             else if(direction === directions.DOWN)
-              return basePosition + attackVerticalDetectOffset;
+              return basePosition + (playerSize * 0.5);
             else 
               return basePosition;
           };
@@ -306,10 +307,20 @@ export const GameLevel = () => {
             ctx.strokeStyle = "fuchsia";
             ctx.lineWidth = 2;
             ctx.strokeRect(movementDetection.x, movementDetection.y, movementDetection.width, movementDetection.height);
+          }
+          if(showAttackBox) {
             //attack
-            ctx.strokeStyle = "red";
+            ctx.beginPath();
+            ctx.strokeStyle = "white";
             ctx.lineWidth = 2;
-            ctx.strokeRect(attackDetection.x, attackDetection.y, attackDetection.width, attackDetection.height);
+
+            let x = attackDetection.x + (attackDetection.width / 2);
+            let y = attackDetection.y + (attackDetection.height / 2);
+            let radius = playerSize * 0.25;
+            ctx.arc(x, y, radius, 0, 2 * Math.PI); // Full circle from 0 to 2 * Math.PI
+            ctx.stroke();
+
+            //ctx.strokeRect(attackDetection.x, attackDetection.y, attackDetection.width, attackDetection.height);
           }
 
           if(showInteractionBox){
