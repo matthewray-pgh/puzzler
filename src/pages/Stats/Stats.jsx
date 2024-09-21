@@ -13,7 +13,9 @@ export const Stats = () => {
         <h1>Changelog</h1>
         <h3>v.0.4.0</h3>
         <ul>
-          <li>Updated controls on Level Builder</li>
+          <li>Updated erase controls on Level Builder</li>
+          <li>Added mob controls on Level Builder</li>
+          <li>Updated attack indicator on Game level - changed from rect to circle</li>
         </ul>
         <h3>v.0.3.0</h3>
         <ul>
